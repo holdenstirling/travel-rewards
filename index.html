@@ -488,10 +488,19 @@ function calcTrip(){
   if (!t.dest || !t.days) { el.innerHTML = '<div class="meta">Answer at least destination, days, and travelers for an estimate.</div>'; briefEl.style.display = "none"; return; }
   const e = estimate(t);
   const ptsCovered = e.flightPts <= (BAL_TOTAL.MR + BAL_TOTAL.UR + BAL_TOTAL.United);
+  // Feasibility & logistics advisories
+  const MIN_DAYS = { domestic: 2, mexico: 4, europe: 7, asia: 9, southam: 10, oceania: 10, africa: 9 };
+  const advisories = [];
+  if (t.days < MIN_DAYS[t.region]) advisories.push(`⏱️ <b>Tight on time:</b> ${t.days} days is under the comfortable minimum (~${MIN_DAYS[t.region]}) for this region once you subtract 2 travel days${["asia","oceania","africa"].includes(t.region) ? " and serious jet lag" : ""}. Trim ambitions or add days.`);
+  if (["asia","oceania"].includes(t.region)) advisories.push("🌏 12–16h time shift — plan day 1 as a wash and don't book anything important on arrival day.");
+  if (t.days >= 7) advisories.push(`🛋️ Build in ~${Math.max(1, Math.floor(t.days/7))} buffer/rest day${t.days >= 14 ? "s" : ""} — packed itineraries break on weather, transit delays, and tired legs.`);
+  if (/permit|camp|hut|lottery/i.test(t.anchor)) advisories.push("🎫 Permit/camp constraint detected — these dictate everything. Claude will find the exact reservation-opening date; book the trip backward from it.");
+  if (/wedding|race|event|festival/i.test(t.anchor)) advisories.push("📅 Fixed event — book flights early (no date flexibility premium-hunting) and arrive ≥1 full day ahead as insurance.");
   el.innerHTML = `<h3>Estimate: $${Math.round(e.allCash).toLocaleString()} all-cash · or $${Math.round(e.ground).toLocaleString()} + ${Math.round(e.flightPts/1000)}k points</h3>
     <div class="meta" style="margin-top:6px">Flights (${t.cabin === "biz" ? "business" : "economy"}, ${t.pax} pax): $${Math.round(e.flightCash).toLocaleString()} cash or ~${Math.round(e.flightPts/1000)}k points via ${e.path}</div>
     <div class="meta">On the ground (${t.days} days, ${t.style}): ~$${Math.round(e.ground).toLocaleString()} (lodging + food + activities/transit)</div>
-    <div class="meta" style="margin-top:6px">${ptsCovered ? `✅ Points comfortably cover flights — you hold 1.15M across MR/UR/United.` : `⚠️ Flight award exceeds combined balances — economy or cash likely.`} Ballpark ±30% — ask Claude for the researched version.</div>`;
+    <div class="meta" style="margin-top:6px">${ptsCovered ? `✅ Points comfortably cover flights — you hold 1.15M across MR/UR/United.` : `⚠️ Flight award exceeds combined balances — economy or cash likely.`} Ballpark ±30% — ask Claude for the researched version.</div>
+    ${advisories.length ? `<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">` + advisories.map(a => `<div class="meta" style="margin-top:4px">${a}</div>`).join("") + `</div>` : ""}`;
   const brief = `New trip for the pipeline: ${t.dest} (${t.region}), ${t.when}, ~${t.days} days, ${t.pax} traveler(s), ${t.cabin === "biz" ? "business" : "economy"} long-haul, ${t.style} style.${t.anchor ? " Anchor/constraint: " + t.anchor + "." : ""}${t.notes ? " Notes: " + t.notes + "." : ""} Rough estimate: $${Math.round(e.allCash).toLocaleString()} all-cash or $${Math.round(e.ground).toLocaleString()} + ${Math.round(e.flightPts/1000)}k points. Please run the full build-out: route/award research, hard-constraint opening dates, T-minus reminders, deal-watch thresholds, and a refined cost model.`;
   briefEl.style.display = "block";
   briefEl.innerHTML = `<div class="group-title" style="margin-top:0">Brief for Claude</div><div class="meta" id="brief-text" style="user-select:all">${esc(brief)}</div>`;
