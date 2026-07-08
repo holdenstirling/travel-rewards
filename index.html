@@ -74,6 +74,7 @@
 
 <div class="tabs">
   <button class="tab active" data-p="trips">Trips</button>
+  <button class="tab" data-p="upcoming">📅 Upcoming</button>
   <button class="tab" data-p="addtrip">➕ Add Trip</button>
   <button class="tab" data-p="chat">💬 Chat</button>
   <button class="tab" data-p="credits">Credits</button>
@@ -84,6 +85,11 @@
 </div>
 
 <div id="trips" class="panel active"><div class="empty">Loading…</div></div>
+
+<div id="upcoming" class="panel">
+  <div class="card"><div class="meta">Everything the travel system knows is coming: trips, deadlines, logistics, milestones, constraints, and computed credit resets. (Your full Google Calendar isn't mirrored here — this is the travel layer.)</div></div>
+  <div id="upcoming-list"><div class="empty">Loading…</div></div>
+</div>
 
 <div id="addtrip" class="panel">
   <div class="group-title" style="margin-top:0">Ideas matched to you — tap to pre-fill</div>
@@ -230,19 +236,20 @@ sb.auth.onAuthStateChange((_e, session) => { if (session && document.getElementB
 // ---------- Data ----------
 async function loadAll(){
   setSync("syncing…");
-  const [t, c, m, s] = await Promise.all([
+  const [t, c, m, s, ev] = await Promise.all([
     sb.from("trips").select("*").order("created_at"),
     sb.from("constraints").select("*").order("date_start", { nullsFirst: false }),
     sb.from("messages").select("*").order("created_at").limit(100),
-    sb.from("hub_state").select("*")
+    sb.from("hub_state").select("*"),
+    sb.from("events").select("*").order("date")
   ]);
-  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || [];
+  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || [];
   DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
   const b = DB.state.balances || {};
   document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
   const cur = document.getElementById("c-cur");
   cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
-  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus();
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
 async function saveState(key){
@@ -502,6 +509,40 @@ function renderStatus(){
   document.getElementById("open-count").innerHTML = `<span class="pill ${open?"warn":"ok"}">${open} open</span>`;
   document.getElementById("constraints-list").innerHTML = DB.constraints.map(c =>
     `<div class="row"><div class="nm"><b>${esc(c.label)}</b> <span class="pill ${c.kind === "standing" ? "info" : "warn"}">${esc(c.kind)}</span><br><span style="color:#666;font-size:12px">${c.date_start ? c.date_start + " → " + c.date_end : "always"} ${esc(c.notes || "")}</span></div></div>`).join("") || '<div class="empty">None.</div>';
+}
+
+// ---------- Upcoming ----------
+const KIND_PILL = { trip:"info", deadline:"soon", logistics:"warn", milestone:"info", race:"ok", credit:"ok", constraint:"warn", reset:"ok" };
+function nextResets(){
+  const out = [], n = new Date();
+  const iso = d => d.toISOString().slice(0,10);
+  out.push({ date: iso(new Date(n.getFullYear(), n.getMonth()+1, 1)), label: "💳 Monthly credits reset (Uber, entertainment, Disney, DoorDash)", kind: "reset" });
+  const q = Math.floor(n.getMonth()/3);
+  out.push({ date: iso(new Date(n.getFullYear() + (q === 3 ? 1 : 0), (q+1)%4*3, 1)), label: "💳 Quarterly reset — Resy $100 + Lululemon $75", kind: "reset" });
+  out.push({ date: iso(new Date(n.getFullYear()+1, 0, 1)), label: "💳 Annual reset — airline fee, first-half hotel credit, Q1 credits", kind: "reset" });
+  return out;
+}
+function renderUpcoming(){
+  const el = document.getElementById("upcoming-list");
+  const today = new Date().toISOString().slice(0,10);
+  let items = [];
+  (DB.events || []).forEach(e => items.push({ date: e.date, end: e.end_date, label: e.label, kind: e.kind, notes: e.notes }));
+  (DB.trips || []).forEach(t => { if (t.date_start) items.push({ date: t.date_start, end: t.date_end, label: "✈️ " + t.dest, kind: "trip", notes: t.when_text }); });
+  (DB.constraints || []).forEach(c => { if (c.date_start) items.push({ date: c.date_start, end: c.date_end, label: "🚫 " + c.label, kind: "constraint", notes: c.notes }); });
+  items = items.concat(nextResets());
+  items = items.filter(i => (i.end || i.date) >= today).sort((a,b) => a.date.localeCompare(b.date));
+  if (!items.length) { el.innerHTML = '<div class="empty">Nothing upcoming.</div>'; return; }
+  let html = "", lastMonth = "";
+  items.forEach(i => {
+    const d = new Date(i.date + "T12:00:00");
+    const month = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    if (month !== lastMonth) { html += `<div class="group-title">${month}</div>`; lastMonth = month; }
+    const du = daysUntil(d);
+    const pill = du <= 0 ? '<span class="pill soon">now</span>' : du <= 14 ? `<span class="pill soon">in ${du}d</span>` : `<span class="pill ${KIND_PILL[i.kind] || "info"}">in ${du}d</span>`;
+    const range = i.end && i.end !== i.date ? ` → ${new Date(i.end + "T12:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" })}` : "";
+    html += `<div class="card" style="padding:10px 14px"><div style="display:flex;gap:10px;align-items:baseline"><b style="min-width:52px;font-size:13px">${d.toLocaleDateString("en-US", { month:"short", day:"numeric" })}${range}</b><div style="flex:1;font-size:13.5px">${esc(i.label)} ${pill}${i.notes ? `<div class="meta">${esc(i.notes)}</div>` : ""}</div></div></div>`;
+  });
+  el.innerHTML = html;
 }
 
 // ---------- Tabs & boot ----------
