@@ -54,6 +54,7 @@
 <div class="tabs">
   <button class="tab active" data-p="trips">Trips</button>
   <button class="tab" data-p="credits">Credit Tracker</button>
+  <button class="tab" data-p="calc">Points vs Cash</button>
   <button class="tab" data-p="packing">Packing</button>
   <button class="tab" data-p="docs">Docs</button>
   <button class="tab" data-p="status">Status</button>
@@ -87,6 +88,24 @@
 </div>
 
 <div id="credits" class="panel"></div>
+
+<div id="calc" class="panel">
+  <div class="card">
+    <h3>Should this trip be points or cash?</h3>
+    <div class="meta" style="margin-bottom:12px">Enter both prices for the same flight/hotel. Verdict uses your playbook thresholds and live balances (Jul 2026).</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+      <label style="font-size:12px;color:#666">Cash price ($)<br><input type="text" id="c-cash" placeholder="e.g. 3800" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+      <label style="font-size:12px;color:#666">Award price (points)<br><input type="text" id="c-pts" placeholder="e.g. 85000" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+      <label style="font-size:12px;color:#666">Award taxes/fees ($)<br><input type="text" id="c-fees" placeholder="e.g. 60" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+      <label style="font-size:12px;color:#666">Points from<br><select id="c-cur" style="width:100%;margin-top:4px" onchange="calcVerdict()"><option value="395323">Amex MR (395k)</option><option value="555503">Chase UR (555k)</option><option value="201383">United (201k)</option></select></label>
+    </div>
+    <label style="font-size:13px;display:block;margin-top:12px"><input type="checkbox" id="c-plat" checked onchange="calcVerdict()"> It's a flight I'd pay for on the Platinum (5x MR back on cash ≈ 10% rebate)</label>
+  </div>
+  <div class="card" id="c-result"><div class="meta">Enter prices above for a verdict.</div></div>
+  <div class="card" style="font-size:12.5px;color:#666;line-height:1.6">
+    <b>The math:</b> cents-per-point = (cash − award fees) ÷ points. Under 1.5¢ → pay cash, keep the points. 1.5–2¢ → borderline (lean cash for economy, points for premium). Over 2¢ → use points. The Platinum checkbox credits the 5x earn-back against the cash price. For live analysis with real fares, ask Claude: "Tokyo in March — points or cash?"
+  </div>
+</div>
 
 <div id="packing" class="panel">
   <div class="tabs" style="position:static;padding:0">
@@ -301,6 +320,32 @@ function renderCredits(){
   el.innerHTML = `<div class="card hero"><h3>$${totalLeft} in credits still unused this cycle</h3><div class="meta">Check off as you use them — resets automatically each period.</div></div>` + html;
 }
 renderCredits();
+
+// Points vs Cash calculator
+function calcVerdict(){
+  const cash = parseFloat(document.getElementById("c-cash").value.replace(/[$,]/g,"")) || 0;
+  const pts = parseFloat(document.getElementById("c-pts").value.replace(/[,k]/gi, m => m.toLowerCase()==="k" ? "000" : "")) || 0;
+  const fees = parseFloat(document.getElementById("c-fees").value.replace(/[$,]/g,"")) || 0;
+  const bal = parseFloat(document.getElementById("c-cur").value);
+  const isPlat = document.getElementById("c-plat").checked;
+  const el = document.getElementById("c-result");
+  if (!cash || !pts) { el.innerHTML = '<div class="meta">Enter prices above for a verdict.</div>'; return; }
+  const effCash = isPlat ? cash * 0.9 : cash; // 5x MR at ~2¢ ≈ 10% back
+  const cpp = ((effCash - fees) / pts) * 100;
+  const pctBal = Math.round(pts / bal * 100);
+  let verdict, color, why;
+  if (cpp < 1.5) { verdict = "💵 PAY CASH"; color = "#256a37";
+    why = `You'd only get ${cpp.toFixed(2)}¢ per point — below your 1.5¢ floor${isPlat ? " (after crediting the 5x Platinum earn-back)" : ""}. Pay cash, keep the points for a premium redemption.`; }
+  else if (cpp < 2) { verdict = "🤔 BORDERLINE"; color = "#a15c00";
+    why = `${cpp.toFixed(2)}¢ per point. Defensible either way — lean cash if it's economy, points if it's a premium cabin or cash is tight this month.`; }
+  else { verdict = "🎯 USE POINTS"; color = "#b2543a";
+    why = `${cpp.toFixed(2)}¢ per point — well above the 2¢ bar. This is what you've been hoarding for.${cpp > 4 ? " This is an exceptional redemption." : ""}`; }
+  let balNote = pts > bal ? `⚠️ That's more points than this balance holds (${pctBal}%). Consider combining currencies via Aeroplan or paying cash.` : `Uses ${pctBal}% of this balance (${(bal-pts).toLocaleString()} left after).`;
+  el.innerHTML = `<h3 style="color:${color}">${verdict} <span class="pill info">${cpp.toFixed(2)}¢/pt</span></h3>
+    <div class="meta" style="margin-top:6px">${why}</div>
+    <div class="meta" style="margin-top:6px">${balNote}</div>
+    ${isPlat ? `<div class="meta" style="margin-top:6px">Cash path also earns ~${Math.round(cash*5).toLocaleString()} MR (worth ~$${Math.round(cash*5*0.02).toLocaleString()}), already credited in the math.</div>` : ""}`;
+}
 
 // Packing lists
 const PACKING = {
