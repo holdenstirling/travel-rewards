@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travel Rewards HQ — Holden</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f6f3; color: #1a1a1a; padding: 20px; max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 13px; margin-bottom: 18px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; position: sticky; top: 0; background: #f7f6f3; padding: 8px 0; z-index: 5; }
+  .tab { padding: 9px 15px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .panel { display: none; } .panel.active { display: block; }
+  .card { background: #fff; border: 1px solid #e5e2dc; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+  .card h3 { font-size: 15px; margin-bottom: 3px; }
+  .meta { color: #666; font-size: 12.5px; line-height: 1.5; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+  .pill.soon { background: #fdecea; color: #b3261e; }
+  .pill.ok { background: #e8f2ea; color: #256a37; }
+  .pill.info { background: #e9eef8; color: #2a4d8f; }
+  .pill.warn { background: #fff3e0; color: #a15c00; }
+  .group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8a8578; margin: 20px 0 8px; }
+  .row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0ede7; }
+  .row:last-child { border-bottom: none; }
+  .row input[type=checkbox] { width: 17px; height: 17px; accent-color: #256a37; cursor: pointer; margin-top: 2px; flex-shrink: 0; }
+  .row .nm { flex: 1; font-size: 13.5px; line-height: 1.45; }
+  .row .nm .used { text-decoration: line-through; color: #999; }
+  .amt { font-weight: 700; font-size: 13.5px; min-width: 46px; text-align: right; }
+  .bar { height: 5px; background: #eee; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .bar > div { height: 100%; background: #b2543a; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e5e2dc; margin-bottom: 12px; }
+  th { text-align: left; padding: 9px 12px; background: #f0ede7; font-size: 12px; }
+  td { padding: 8px 12px; border-top: 1px solid #f0ede7; vertical-align: top; }
+  input[type=text], select { padding: 8px 10px; border: 1px solid #ccc; border-radius: 7px; font-size: 13px; background: #fff; }
+  .wl-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .btn { padding: 8px 14px; border-radius: 7px; border: 1px solid #b2543a; background: #b2543a; color: #fff; cursor: pointer; font-size: 13px; }
+  .del { background: none; border: none; color: #b3261e; cursor: pointer; font-size: 12px; padding: 4px 0; }
+  .empty { color: #888; font-size: 13px; padding: 14px; text-align: center; }
+  .hero { background: #1a1a1a; color: #fff; border: none; }
+  .hero .meta { color: #bbb; }
+  .phase { border-left: 3px solid #b2543a; padding-left: 12px; margin-bottom: 12px; }
+  .phase .d { font-weight: 700; font-size: 13px; }
+  .phase .w { font-size: 13px; color: #444; }
+  .note { font-size: 12px; color: #888; margin-top: 14px; }
+</style>
+</head>
+<body>
+<h1>✈️ Travel Rewards HQ</h1>
+<div class="sub">Amex Platinum · Sapphire Preferred · Freedom Unlimited · Prime Visa · Blue Cash Preferred · DEN · <b>MR 395k · UR 555k · United 201k</b></div>
+
+<div class="tabs">
+  <button class="tab active" data-p="trips">Trips</button>
+  <button class="tab" data-p="credits">Credit Tracker</button>
+  <button class="tab" data-p="packing">Packing</button>
+  <button class="tab" data-p="docs">Docs</button>
+  <button class="tab" data-p="status">Status</button>
+  <button class="tab" data-p="wishlist">Wishlist</button>
+  <button class="tab" data-p="playbook">Playbook</button>
+</div>
+
+<div id="trips" class="panel active">
+  <div class="card hero" id="countdown-card"></div>
+
+  <div class="group-title">Europe 2026 — Aug 7 → Sep 13 · transport booked ✓</div>
+  <div class="card">
+    <div class="phase"><div class="d">Aug 7–8</div><div class="w">DEN→EWR→Geneva (United) → shuttle to Chamonix</div></div>
+    <div class="phase"><div class="d">Aug 10–14</div><div class="w">Mont Blanc Summit Course (CMBG) — final-details email expected ~Aug 1</div></div>
+    <div class="phase"><div class="d">Aug 15–21</div><div class="w">Tour du Mont Blanc — 7 days CCW, Fenêtre d'Arpette · cash: €100+ / 150 CHF</div></div>
+    <div class="phase"><div class="d">Aug 23–28</div><div class="w">Imola work week (bus + trains booked)</div></div>
+    <div class="phase"><div class="d">Aug 28–30</div><div class="w">Stelvio weekend, Bormio → fly Bergamo→Kraków (FR6257)</div></div>
+    <div class="phase"><div class="d">Aug 30–Sep 6</div><div class="w">Poland: Kraków → Zakopane (Tatras) → Wrocław → fly to Split (LOT via Warsaw)</div></div>
+    <div class="phase"><div class="d">Sep 6–11</div><div class="w">Split work week → fly to Budapest (Austrian via Vienna)</div></div>
+    <div class="phase"><div class="d">Sep 11–13</div><div class="w">Wedding, Lake Balaton → BUD→MUC→DEN home 18:45 (United/Lufthansa)</div></div>
+  </div>
+
+  <div class="group-title">Europe — still to book / do <span id="euro-count"></span></div>
+  <div class="card" id="euro-todos"></div>
+
+  <div class="group-title">Patagonia — future concept</div>
+  <div class="card">
+    <h3>Santiago → O Circuit (Torres del Paine) → El Calafate / El Chaltén → Carretera Austral <span class="pill info">~25 days · not committed</span></h3>
+    <div class="meta">Season Nov–Mar. Long-haul on points: MR→LifeMiles (~63k biz one-way, no surcharges) or MR/UR→Aeroplan. Campsites open for booking ~Jun–Jul before the season and sell out fast. Deal watcher is hunting DEN→SCL/EZE fares daily.</div>
+  </div>
+</div>
+
+<div id="credits" class="panel"></div>
+
+<div id="packing" class="panel">
+  <div class="tabs" style="position:static;padding:0">
+    <button class="tab sub-tab active" data-trip="eu">🇫🇷 Europe 2026</button>
+    <button class="tab sub-tab" data-trip="pat">🏔️ Patagonia</button>
+  </div>
+  <div id="pack-list"></div>
+</div>
+
+<div id="docs" class="panel">
+  <details class="card" open><summary style="font-weight:700;cursor:pointer;font-size:15px">🇫🇷 Europe — Rewards & Money Prep</summary>
+    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
+    <b>Wallet:</b> bring Platinum + CSP (no foreign fees); Blue Cash Preferred stays home (2.7% fee). Default swipe abroad: CSP; Platinum for flights only.<br><br>
+    <b>Open bookings — pay with CSP:</b> Chamonix Aug 8 + 21–22, Geneva→Chamonix shuttle, Imola, Bormio + bike, Kraków, Zakopane, Split ×5 (check Chase Travel → $100 credit). Rental car: CSP, decline counter CDW (confirm Italy coverage).<br><br>
+    <b>Flights:</b> set United as Platinum airline ($200 credit covers UA bags). Lounges: Centurion at DEN, Priority Pass at GVA/BUD/VIE/MUC. Ryanair: online check-in or pay €55+.<br><br>
+    <b>⚠️ Insurance:</b> you signed CMBG's discharge — no rescue coverage. Card protections ≠ mountain rescue. Get ÖAV membership (~€70, covers to 6,000 m) before Aug 10. <b>Most important open item.</b><br><br>
+    <b>Credits timing:</b> use Q3 Resy $100 + Lululemon $75 before Aug 7. Uber Cash works in Kraków/Split/Budapest. Hyatt 1:1 decision due Sep 30 (9 days after you land).<br><br>
+    <b>Cash:</b> €100+ / 150 CHF (huts cash-only) via debit-card ATMs. Poland = złoty, Hungary = forint, rest = euro.
+    </div>
+  </details>
+  <details class="card"><summary style="font-weight:700;cursor:pointer;font-size:15px">🏨 Europe — Lodging Shortlist (book now)</summary>
+    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
+    <b>Chamonix (Aug 8 + 21–22):</b> ① Hôtel Le Refuge des Aiglons — adjacent to Chamonix Sud, free duffel storage with booking, pool facing Mont Blanc. ② Auberge du Manoir. Backup storage: Chamlockers/Bounce ~€4/day. Only book nights Pierre doesn't cover (Aug 9/14 pending).<br><br>
+    <b>Split (Sep 6–11):</b> stay in <b>Veli Varoš</b> — quiet, café culture, beside Old Town and Marjan Hill. ① Heritage Hotel 19 (~€100/nt, reliable Wi-Fi). ② Apartments Korta (~€60/nt, confirm AC + desk). Check Chase Travel first for the $100 credit. Must-haves: fast Wi-Fi (work 3–11 PM), AC, 5:15 AM taxi arrangeable.
+    </div>
+  </details>
+  <details class="card"><summary style="font-weight:700;cursor:pointer;font-size:15px">📋 Planning Playbook — how far out to book anything</summary>
+    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
+    <b>Premium award flights:</b> 8–11 mo (space opens ~330 days out) · <b>Cash intl:</b> 2–4 mo · <b>Domestic:</b> 1–3 mo · <b>Permits/camps:</b> the day they open (6–12 mo — the hard constraint everything flexes around) · <b>Peak hotels:</b> 3–6 mo refundable, re-shop later · <b>EU trains:</b> 3–6 mo · <b>Cars/bikes:</b> 1–3 mo free-cancel · <b>Insurance:</b> before any deposit · <b>Passport:</b> 6 mo validity beyond return.<br><br>
+    <b>Flight-hunting rules:</b> check transfer bonuses first · know target prices (EU biz 60k, SA biz 63k, JP RT 75–85k) · one-ways beat round-trips · cheap positioning flight to ORD/IAH/EWR unlocks better space · if cash ÷ points &lt; 1.5¢/pt, pay cash on Platinum.<br><br>
+    <b>New trip?</b> Tell Claude or add it to Trips/Trip-Pipeline.md — you get: route deep-dive, dated T-minus reminders, deal-watch thresholds, full cost model against live balances.
+    </div>
+  </details>
+  <details class="card"><summary style="font-weight:700;cursor:pointer;font-size:15px">🏔️ Patagonia — Points Plan (target Nov 2027)</summary>
+    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
+    <b>Season:</b> Nov–Mar. Targeting Nov 2027 (season opener).<br><br>
+    <b>Timeline:</b> Mar 2027 — start award hunting (reminder set) · Feb–May 2027 — book DEN→SCL/EZE · Jun 2027 — O Circuit camps open, book within days (reminder set) + park pass.<br><br>
+    <b>Points path:</b> MR→LifeMiles ~63k biz one-way (no surcharges) or MR/UR→Aeroplan ~60–70k. Economy: ~30k or UR portal. Budget ~120–140k points RT business.<br><br>
+    <b>In-country:</b> SCL→PUQ flights on Platinum (5x), buses/rental on CSP. Ground budget ~$2,300–2,900/person. Insurance: remote-evac coverage (check if ÖAV term covers it).
+    </div>
+  </details>
+</div>
+
+<div id="status" class="panel">
+  <div class="group-title">Open items <span id="open-count"></span></div>
+  <div class="card" id="open-items"></div>
+  <div class="group-title">When you get pinged</div>
+  <table>
+    <tr><th>When</th><th>What</th></tr>
+    <tr><td>Daily 9am</td><td>Deal watch (Claude) — alerts only on exceptional deals; hunting Patagonia fares</td></tr>
+    <tr><td>Sundays 6pm</td><td>Weekly digest (Claude) — trip prep, transfer bonuses, deals, credits, offers</td></tr>
+    <tr><td>1st of month, 9am</td><td>Calendar: all monthly credits reset</td></tr>
+    <tr><td>Jan/Apr/Jul/Oct 1</td><td>Calendar: Resy $100 + Lululemon $75 reset</td></tr>
+    <tr><td>Sep 21, 2026</td><td>Calendar: Hyatt 1:1 deadline decision</td></tr>
+    <tr><td>Aug–Sep 2026</td><td>8 in-trip logistics pings (check-ins, taxis, early buses) — local time</td></tr>
+    <tr><td>Jan 1 / ~Jan 24</td><td>Calendar: Amex annual credits / CSP anniversary</td></tr>
+    <tr><td>Mar 1 + Jun 1, 2027</td><td>Calendar: Patagonia award hunt + camp bookings</td></tr>
+  </table>
+  <div class="group-title">Where everything lives</div>
+  <table>
+    <tr><td>This site</td><td>Everything, snapshot — ask Claude to update + re-drop after changes</td></tr>
+    <tr><td>Rewards folder (Mac)</td><td>Source of truth: guide, trip docs, site source</td></tr>
+    <tr><td>Claude</td><td>The engine: scheduled tasks, live calendar-synced artifact, award research on demand</td></tr>
+  </table>
+</div>
+
+<div id="wishlist" class="panel">
+  <div class="wl-form">
+    <input type="text" id="wl-dest" placeholder="Destination" style="flex:2;min-width:140px">
+    <input type="text" id="wl-when" placeholder="When (e.g. Mar 2027)" style="flex:1;min-width:110px">
+    <select id="wl-cabin"><option>Business</option><option>First</option><option>Economy</option></select>
+    <button class="btn" onclick="addWish()">Add</button>
+  </div>
+  <div id="wl-list"></div>
+</div>
+
+<div id="playbook" class="panel">
+  <div class="group-title">What points are worth</div>
+  <table>
+    <tr><th>Redemption</th><th>Value/pt</th></tr>
+    <tr><td>MR → transfer partner, good premium award</td><td>2–8¢</td></tr>
+    <tr><td>UR → transfer partner, good award</td><td>2–6¢</td></tr>
+    <tr><td>UR → Chase portal (guaranteed floor)</td><td>1.25¢</td></tr>
+    <tr><td>MR → statement credit / gift cards</td><td>0.6–1¢ — never</td></tr>
+  </table>
+  <div class="group-title">Which card to swipe</div>
+  <table>
+    <tr><th>Spend</th><th>Card</th><th>Rate</th></tr>
+    <tr><td>Flights (direct / Amex Travel)</td><td>Amex Platinum</td><td>5x MR</td></tr>
+    <tr><td>Prepaid hotels via Amex Travel</td><td>Amex Platinum</td><td>5x MR</td></tr>
+    <tr><td>Amazon / Whole Foods</td><td>Prime Visa</td><td>5%</td></tr>
+    <tr><td>Dining, gas/EV, streaming, online groceries</td><td>Sapphire Preferred</td><td>3x UR</td></tr>
+    <tr><td>Drugstores</td><td>Freedom Unlimited</td><td>3% → UR</td></tr>
+    <tr><td>Other travel (transit, Airbnb, tolls)</td><td>Sapphire Preferred</td><td>2x UR</td></tr>
+    <tr><td>US supermarkets (≤$6k/yr)</td><td>Blue Cash Preferred</td><td>6% cash</td></tr>
+    <tr><td><b>Everything else</b></td><td><b>Freedom Unlimited</b></td><td><b>1.5x → UR</b></td></tr>
+    <tr><td><b>Anything abroad</b></td><td><b>CSP (or Platinum for flights)</b></td><td>BCP has 2.7% foreign fee — never abroad</td></tr>
+  </table>
+  <div class="group-title">Premium-cabin sweet spots from DEN</div>
+  <table>
+    <tr><th>Region</th><th>Best path</th><th>Cost</th></tr>
+    <tr><td>Japan / Asia</td><td>MR → ANA (RT biz) or Virgin Atlantic (ANA first)</td><td>75–85k RT biz / 110k 1-way F</td></tr>
+    <tr><td>Europe</td><td>MR or UR → Flying Blue biz; Virgin; Iberia Avios off-peak</td><td>from 34–60k one-way biz</td></tr>
+    <tr><td>South America</td><td>MR → Avianca LifeMiles (no surcharges); UR/MR → Aeroplan</td><td>~60–63k one-way biz</td></tr>
+    <tr><td>Hotels</td><td>UR → Hyatt <b>(⚠️ 1:1 ends Sep 30, 2026)</b></td><td>&gt;2¢/pt routinely</td></tr>
+  </table>
+  <div class="group-title">Rules & protections</div>
+  <div class="card" style="font-size:13.5px;line-height:1.6">
+    1. Never transfer speculatively — find the award seat first.<br>
+    2. Check active transfer bonuses before moving points.<br>
+    3. Pool Freedom Unlimited points into CSP before redeeming.<br>
+    4. Prime Visa points are NOT Ultimate Rewards — Amazon only.<br>
+    5. Aeroplan takes both MR and UR — combine for big premium awards.<br>
+    6. Rental cars → CSP, decline counter CDW (primary coverage).<br>
+    7. Flights → Platinum (5x + lounges) · trip protections ride with the paying card.<br>
+    8. Credit card protections ≠ mountain rescue insurance — carry ÖAV/Global Rescue for alpine trips.
+  </div>
+</div>
+
+<div class="note">Static snapshot — live version with calendar sync runs in Claude (Travel Rewards HQ artifact). Checkboxes & wishlist save to this browser only. Updated July 8, 2026.</div>
+
+<script>
+document.querySelectorAll(".tab:not(.sub-tab)").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab:not(.sub-tab)").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.p).classList.add("active");
+}));
+function daysUntil(d){ return Math.ceil((d - new Date()) / 86400000); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+// Countdown hero
+(function(){
+  const dep = new Date("2026-08-07T10:02:00-06:00"), ret = new Date("2026-09-13T18:45:00-06:00");
+  const n = new Date(); let html;
+  if (n < dep) html = `<h3>🇫🇷 Europe in ${daysUntil(dep)} days</h3><div class="meta">Wheels up Aug 7, 10:02 AM · use Q3 Resy $100 + Lululemon $75 before you go · book alpine rescue insurance (above 2,500 m) before Aug 10</div>`;
+  else if (n <= ret) html = `<h3>🏔️ You're on the Europe trip — ${daysUntil(ret)} days left</h3><div class="meta">Pay with CSP (Platinum for flights) · BCE stays in the drawer · Uber Cash works in Kraków, Split & Budapest</div>`;
+  else html = `<h3>Welcome home 🎉</h3><div class="meta">Hyatt 1:1 transfer deadline: Sep 30, 2026 · Q3 credits expire Sep 30 · time to plan Patagonia?</div>`;
+  document.getElementById("countdown-card").innerHTML = html;
+})();
+
+// Europe open items
+const EURO_TODOS = [
+  ["ins","⚠️ Alpine rescue insurance (must cover >2,500 m — ÖAV membership is the classic answer)"],
+  ["cham8","Chamonix lodging Aug 8 (arrival night, near Chamonix Sud, ask to store duffel)"],
+  ["shuttle","Geneva Airport → Chamonix shuttle Aug 8 (~9:30–10 AM departure)"],
+  ["pierre","Chase Pierre (CMBG): confirm Aug 9 & Aug 14 nights in writing"],
+  ["cham21","Chamonix lodging Aug 21–22 (2 nights, same hotel)"],
+  ["imola","Imola lodging Aug 23–27 (strong Wi-Fi) — pay with CSP"],
+  ["bormio","Bormio lodging 2–3 nights + reserve rental road bike"],
+  ["krakow","Kraków 1 night (Aug 30)"],
+  ["zakopane","Zakopane 3 nights (good Wi-Fi)"],
+  ["split","Split 5 nights Sep 6–11 (Wi-Fi, AC) — check Chase Travel for the $100 credit"],
+  ["taxi","Pre-book Split airport taxi (Sep 11, ~5:15 AM pickup)"],
+  ["ride","Confirm ~9:45 AM ride from Balaton to BUD (Sep 13)"],
+  ["united","Set United as Platinum airline selection ($200 credit — UA bag fees)"],
+  ["luke","Tell Luke you're skipping the birthday (Aug 22–24), clear calendar block"],
+  ["cash","Get €100+ and ~150 CHF cash + sleeping liner (Bon Abri & Trient require one)"]
+];
+function renderEuro(){
+  const el = document.getElementById("euro-todos");
+  let open = 0;
+  el.innerHTML = EURO_TODOS.map(([k, label]) => {
+    const done = localStorage.getItem("euro_" + k) === "1";
+    if (!done) open++;
+    return `<div class="row"><input type="checkbox" ${done?"checked":""} onchange="localStorage.setItem('euro_${k}', this.checked?'1':'0'); renderEuro();"><div class="nm"><span class="${done?"used":""}">${label}</span></div></div>`;
+  }).join("");
+  document.getElementById("euro-count").innerHTML = `<span class="pill ${open ? "warn" : "ok"}">${open} open</span>`;
+}
+renderEuro();
+
+// Credits tracker
+function periodInfo(kind){
+  const n = new Date(), y = n.getFullYear(), m = n.getMonth();
+  if (kind === "month") { return { id: `${y}-${String(m+1).padStart(2,"0")}`, end: new Date(y, m+1, 0), start: new Date(y,m,1), label: "this month" }; }
+  if (kind === "quarter") { const q = Math.floor(m/3); return { id: `${y}-Q${q+1}`, end: new Date(y, q*3+3, 0), start: new Date(y,q*3,1), label: `Q${q+1}` }; }
+  if (kind === "half") { const h = m < 6 ? 0 : 1; return { id: `${y}-H${h+1}`, end: new Date(y, h?12:6, 0), start: new Date(y, h?6:0, 1), label: h ? "2nd half" : "1st half" }; }
+  return { id: `${y}`, end: new Date(y, 12, 0), start: new Date(y,0,1), label: `${y}` };
+}
+const CREDITS = [
+  { g: "Monthly", kind: "month", items: [
+    { k: "uber", name: "Uber Cash — Amex Platinum", amt: 15, dec: 35 },
+    { k: "ent", name: "Digital entertainment — Amex Platinum", amt: 25 },
+    { k: "disney", name: "Disney Bundle — Blue Cash Preferred", amt: 10 },
+    { k: "doordash", name: "DoorDash non-restaurant — Sapphire Preferred", amt: 10 } ]},
+  { g: "Quarterly", kind: "quarter", items: [
+    { k: "resy", name: "Resy dining — Amex Platinum", amt: 100 },
+    { k: "lulu", name: "Lululemon — Amex Platinum", amt: 75 } ]},
+  { g: "Semi-annual", kind: "half", items: [
+    { k: "fhr", name: "FHR/THC hotel credit — Amex Platinum", amt: 300 } ]},
+  { g: "Annual", kind: "year", items: [
+    { k: "airline", name: "Airline fee credit (United) — Amex Platinum", amt: 200 },
+    { k: "csphotel", name: "Chase Travel hotel credit — CSP (anniversary ~Jan 24)", amt: 100 } ]}
+];
+function renderCredits(){
+  const el = document.getElementById("credits");
+  let html = "", totalLeft = 0;
+  CREDITS.forEach(grp => {
+    const p = periodInfo(grp.kind), dl = daysUntil(p.end);
+    const pct = Math.min(100, Math.round(((new Date() - p.start) / (p.end - p.start)) * 100));
+    html += `<div class="group-title">${grp.g} — resets in ${dl} day${dl===1?"":"s"} (${p.label})</div><div class="card">`;
+    grp.items.forEach(it => {
+      const key = `credit_${it.k}_${p.id}`;
+      const used = localStorage.getItem(key) === "1";
+      const amt = (it.dec && new Date().getMonth() === 11) ? it.dec : it.amt;
+      if (!used) totalLeft += amt;
+      html += `<div class="row"><input type="checkbox" ${used?"checked":""} onchange="localStorage.setItem('${key}', this.checked?'1':'0'); renderCredits();">
+        <div class="nm"><span class="${used?"used":""}">${it.name}</span></div><div class="amt">$${amt}</div></div>`;
+    });
+    html += `<div class="bar"><div style="width:${pct}%"></div></div></div>`;
+  });
+  el.innerHTML = `<div class="card hero"><h3>$${totalLeft} in credits still unused this cycle</h3><div class="meta">Check off as you use them — resets automatically each period.</div></div>` + html;
+}
+renderCredits();
+
+// Packing lists
+const PACKING = {
+  eu: [
+    ["Docs & money", ["Passport","Platinum + CSP + debit (BCP stays home)","€100+ / 150 CHF cash (huts are cash-only)","Alpine rescue insurance proof (ÖAV) — required >2,500 m","Offline booking confirmations + Wallet bus pass"]],
+    ["Electronics", ["Laptop + charger (work weeks)","EU Type C/F + Switzerland Type J adapters","Power bank + headlamp","eSIM with EU + CH data","Noise-canceling headphones"]],
+    ["Mont Blanc course (check CMBG kit email ~Aug 1)", ["Base layers ×2 + fleece + big parka","Hardshell jacket + pants","Gloves ×3 (liner/mid/summit)","Cat-4 glacier sunglasses","Reserve boot/crampon/axe/harness rentals in Chamonix","Gaiters + mountain socks ×3","35–40L pack (doubles for TMB)"]],
+    ["TMB (hut-to-hut)", ["Sleeping liner — REQUIRED Bon Abri & Trient","Trail shoes (broken in) + camp sandals","Trekking poles","Hiking kit ×2, socks ×3","Rain shell + light puffy","Blister kit + earplugs (dortoirs)","2L water + quick-dry towel"]],
+    ["Stelvio", ["Bibs + jersey + cycling socks","Shoes/pedals or accept rentals","Descent layers: arm warmers, vest, full gloves"]],
+    ["Cities + wedding", ["Jeans/chinos + 3-4 shirts + sweater","Swimsuit (Split)","Fun Formal outfit — roll it, steam in Split Sep 10","Dress shoes (or dressy sneakers that double up)"]],
+    ["Health", ["Prescriptions for 5+ weeks","SPF50 + lip balm","Ibuprofen / antihistamine / Imodium","Sink-wash soap + travel line"]]
+  ],
+  pat: [
+    ["Docs & money", ["Passport (carry on border-crossing bus days)","Keep Chile PDI immigration slip","USD cash to exchange in Argentina + CLP for camps","Park pass + camp reservations offline","Driver's license (+ IDP check) for rental"]],
+    ["Big Four", ["Tent w/ full guylines (or rent at camps — decide at booking)","Sleeping bag to -5°C","Insulated pad","55–65L pack + rain cover + liner/dry bags"]],
+    ["Kitchen", ["Stove + pot (buy fuel in Puerto Natales)","Lighter ×2, spork, mug","Breakfasts/lunches carried; refugio dinners pre-decided","2L water + lightweight filter"]],
+    ["Clothing (wind rules)", ["Burly rain shell + rain pants — most important item","Windproof softshell","Big camp puffy","Base layers ×2, hike kit ×2","Gloves + beanie + buff (yes, summer)","Socks ×4, gaiters, camp shoes","Broken-in boots / sturdy trail runners"]],
+    ["Sun & safety", ["Cat 3–4 sunglasses + sun hat + SPF50","Blister kit + meds + tape","Headlamp + spares, whistle, emergency bivvy","Trekking poles (John Gardner descent)","Power bank ×2"]],
+    ["Road trip", ["Offline maps (hours of no signal)","Phone mount + playlist","Plan fuel stops — 100+ km gaps"]]
+  ]
+};
+let curTrip = "eu";
+document.querySelectorAll(".sub-tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".sub-tab").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  curTrip = t.dataset.trip;
+  renderPacking();
+}));
+function renderPacking(){
+  const el = document.getElementById("pack-list");
+  let total = 0, done = 0, html = "";
+  PACKING[curTrip].forEach(([grp, items], gi) => {
+    html += `<div class="group-title">${grp}</div><div class="card">`;
+    items.forEach((it, ii) => {
+      const key = `pack_${curTrip}_${gi}_${ii}`;
+      const c = localStorage.getItem(key) === "1";
+      total++; if (c) done++;
+      html += `<div class="row"><input type="checkbox" ${c?"checked":""} onchange="localStorage.setItem('${key}', this.checked?'1':'0'); renderPacking();"><div class="nm"><span class="${c?"used":""}">${it}</span></div></div>`;
+    });
+    html += `</div>`;
+  });
+  const pct = total ? Math.round(done/total*100) : 0;
+  el.innerHTML = `<div class="card hero"><h3>${done} / ${total} packed (${pct}%)</h3><div class="bar" style="background:#444"><div style="width:${pct}%"></div></div></div>` + html;
+}
+renderPacking();
+
+// Status open items
+const OPEN_ITEMS = [
+  ["insurance","⚠️ Alpine rescue insurance before Aug 10 (ÖAV ~€70) — top priority"],
+  ["runnow","Run both Claude scheduled tasks once (\"Run now\") to pre-approve access"],
+  ["chamonix","Book Chamonix — Refuge des Aiglons, Aug 8 + 21–22 (this week; peak season)"],
+  ["split","Book Split — Veli Varoš, Sep 6–11 (check Chase Travel for $100 credit)"],
+  ["united","Confirm United is the Platinum airline selection"],
+  ["bcp","Enroll the $10/mo Disney Bundle offer on Blue Cash Preferred"],
+  ["combine","Combine Freedom Unlimited 98k points into CSP (Chase → Combine points)"],
+  ["anniv","Verify CSP anniversary in Chase app (~Jan 24 assumed)"],
+  ["hyatt","Decide on Hyatt 1:1 UR transfers before Sep 30, 2026"]
+];
+function renderOpen(){
+  const el = document.getElementById("open-items");
+  let open = 0;
+  el.innerHTML = OPEN_ITEMS.map(([k,label]) => {
+    const done = localStorage.getItem("open_" + k) === "1";
+    if (!done) open++;
+    return `<div class="row"><input type="checkbox" ${done?"checked":""} onchange="localStorage.setItem('open_${k}', this.checked?'1':'0'); renderOpen();"><div class="nm"><span class="${done?"used":""}">${label}</span></div></div>`;
+  }).join("");
+  document.getElementById("open-count").innerHTML = `<span class="pill ${open?"warn":"ok"}">${open} open</span>`;
+}
+renderOpen();
+
+// Wishlist
+function getWL(){ try { return JSON.parse(localStorage.getItem("wishlist") || "[]"); } catch { return []; } }
+function saveWL(w){ localStorage.setItem("wishlist", JSON.stringify(w)); renderWL(); }
+function addWish(){
+  const d = document.getElementById("wl-dest").value.trim();
+  if (!d) return;
+  const w = getWL();
+  w.push({ dest: d, when: document.getElementById("wl-when").value.trim(), cabin: document.getElementById("wl-cabin").value });
+  document.getElementById("wl-dest").value = ""; document.getElementById("wl-when").value = "";
+  saveWL(w);
+}
+function delWish(i){ const w = getWL(); w.splice(i,1); saveWL(w); }
+function renderWL(){
+  const w = getWL(), el = document.getElementById("wl-list");
+  el.innerHTML = w.length ? w.map((x,i) =>
+    `<div class="card"><h3>${esc(x.dest)} <span class="pill info">${esc(x.cabin)}</span></h3>
+     <div class="meta">${x.when ? esc(x.when) : "flexible"} · from DEN</div>
+     <button class="del" onclick="delWish(${i})">remove</button></div>`).join("")
+    : '<div class="empty">No wishlist trips yet — Patagonia is tracked separately on the Trips tab.</div>';
+}
+renderWL();
+</script>
+</body>
+</html>
