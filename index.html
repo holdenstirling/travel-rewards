@@ -150,6 +150,11 @@
 </div>
 
 <div id="status" class="panel">
+  <div class="card">
+    <h3>📨 Message Claude from here</h3>
+    <div class="meta" style="margin:6px 0 10px">Anything — new constraint ("mom visiting Mar 3–8"), a booking you made, a trip thought. Sends via your Gmail; Claude's daily 9am scan picks it up within 24h. Chat remains instant.</div>
+    <div style="display:flex;gap:8px"><input type="text" id="hub-note" placeholder="e.g. add constraint: ski weekend Feb 12-15" style="flex:1"><button class="btn" onclick="sendNote()">Send</button></div>
+  </div>
   <div class="group-title">Open items <span id="open-count"></span></div>
   <div class="card" id="open-items"></div>
   <div class="group-title">When you get pinged</div>
@@ -419,6 +424,11 @@ function renderPacking(){
 }
 renderPacking();
 
+function sendNote(){
+  const v = document.getElementById("hub-note").value.trim();
+  if (!v) return;
+  window.location.href = "mailto:holdenstirling@gmail.com?subject=" + encodeURIComponent("HUB: " + v.slice(0,80)) + "&body=" + encodeURIComponent(v);
+}
 // Status open items
 const OPEN_ITEMS = [
   ["insurance","⚠️ Alpine rescue insurance before Aug 10 (ÖAV ~€70) — top priority"],
