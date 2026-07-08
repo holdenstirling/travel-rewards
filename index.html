@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trips / Travel / Rewards Hub — Holden</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f6f3; color: #1a1a1a; padding: 20px; max-width: 860px; margin: 0 auto; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f6f3; color: #1a1a1a; padding: 20px; max-width: 880px; margin: 0 auto; }
   h1 { font-size: 24px; margin-bottom: 4px; }
   .sub { color: #666; font-size: 13px; margin-bottom: 18px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; position: sticky; top: 0; background: #f7f6f3; padding: 8px 0; z-index: 5; }
@@ -16,7 +17,7 @@
   .panel { display: none; } .panel.active { display: block; }
   .card { background: #fff; border: 1px solid #e5e2dc; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
   .card h3 { font-size: 15px; margin-bottom: 3px; }
-  .meta { color: #666; font-size: 12.5px; line-height: 1.5; }
+  .meta { color: #666; font-size: 12.5px; line-height: 1.55; }
   .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
   .pill.soon { background: #fdecea; color: #b3261e; }
   .pill.ok { background: #e8f2ea; color: #256a37; }
@@ -34,56 +35,94 @@
   table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e5e2dc; margin-bottom: 12px; }
   th { text-align: left; padding: 9px 12px; background: #f0ede7; font-size: 12px; }
   td { padding: 8px 12px; border-top: 1px solid #f0ede7; vertical-align: top; }
-  input[type=text], select { padding: 8px 10px; border: 1px solid #ccc; border-radius: 7px; font-size: 13px; background: #fff; }
-  .wl-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  input[type=text], input[type=date], input[type=email], select, textarea { padding: 8px 10px; border: 1px solid #ccc; border-radius: 7px; font-size: 13px; background: #fff; font-family: inherit; }
   .btn { padding: 8px 14px; border-radius: 7px; border: 1px solid #b2543a; background: #b2543a; color: #fff; cursor: pointer; font-size: 13px; }
+  .btn.alt { background: #fff; color: #1a1a1a; border-color: #ccc; }
+  .btn:disabled { opacity: .5; cursor: default; }
   .del { background: none; border: none; color: #b3261e; cursor: pointer; font-size: 12px; padding: 4px 0; }
   .empty { color: #888; font-size: 13px; padding: 14px; text-align: center; }
   .hero { background: #1a1a1a; color: #fff; border: none; }
   .hero .meta { color: #bbb; }
-  .phase { border-left: 3px solid #b2543a; padding-left: 12px; margin-bottom: 12px; }
-  .phase .d { font-weight: 700; font-size: 13px; }
-  .phase .w { font-size: 13px; color: #444; }
   .note { font-size: 12px; color: #888; margin-top: 14px; }
+  #login { max-width: 400px; margin: 60px auto; }
+  .chat-log { max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .msg { padding: 10px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; max-width: 85%; white-space: pre-wrap; }
+  .msg.holden { background: #1a1a1a; color: #fff; align-self: flex-end; }
+  .msg.claude { background: #fff; border: 1px solid #e5e2dc; align-self: flex-start; }
+  .msg .t { font-size: 10.5px; opacity: .6; margin-top: 4px; }
+  .status-tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .st-idea { background: #eee; color: #555; } .st-researching { background: #e9eef8; color: #2a4d8f; }
+  .st-dated { background: #fff3e0; color: #a15c00; } .st-booking { background: #fdecea; color: #b3261e; } .st-booked { background: #e8f2ea; color: #256a37; }
+  .sync { font-size: 11px; color: #8a8578; }
 </style>
 </head>
 <body>
+
+<div id="login" style="display:none">
+  <div class="card">
+    <h3>✈️ Trips / Travel / Rewards Hub</h3>
+    <div class="meta" style="margin:8px 0 12px">Private hub — sign in with a magic link.</div>
+    <input type="email" id="login-email" value="holdenstirling@gmail.com" style="width:100%;margin-bottom:8px">
+    <button class="btn" style="width:100%" onclick="sendLink()">Email me a sign-in link</button>
+    <div class="meta" id="login-msg" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
 <h1>✈️ Trips / Travel / Rewards Hub</h1>
-<div class="sub">Amex Platinum · Sapphire Preferred · Freedom Unlimited · Prime Visa · Blue Cash Preferred · DEN · <b>MR 395k · UR 555k · United 201k</b></div>
+<div class="sub" id="header-sub">Amex Platinum · Sapphire Preferred · Freedom Unlimited · Prime Visa · Blue Cash Preferred · DEN</div>
 
 <div class="tabs">
   <button class="tab active" data-p="trips">Trips</button>
-  <button class="tab" data-p="credits">Credit Tracker</button>
+  <button class="tab" data-p="addtrip">➕ Add Trip</button>
+  <button class="tab" data-p="chat">💬 Chat</button>
+  <button class="tab" data-p="credits">Credits</button>
   <button class="tab" data-p="calc">Points vs Cash</button>
   <button class="tab" data-p="packing">Packing</button>
-  <button class="tab" data-p="docs">Docs</button>
   <button class="tab" data-p="status">Status</button>
-  <button class="tab" data-p="wishlist">➕ Add Trip</button>
   <button class="tab" data-p="playbook">Playbook</button>
 </div>
 
-<div id="trips" class="panel active">
-  <div class="card hero" id="countdown-card"></div>
+<div id="trips" class="panel active"><div class="empty">Loading…</div></div>
 
-  <div class="group-title">Europe 2026 — Aug 7 → Sep 13 · transport booked ✓</div>
+<div id="addtrip" class="panel">
+  <div class="group-title" style="margin-top:0">Ideas matched to you — tap to pre-fill</div>
+  <div class="card" id="suggestions"></div>
   <div class="card">
-    <div class="phase"><div class="d">Aug 7–8</div><div class="w">DEN→EWR→Geneva (United) → shuttle to Chamonix</div></div>
-    <div class="phase"><div class="d">Aug 10–14</div><div class="w">Mont Blanc Summit Course (CMBG) — final-details email expected ~Aug 1</div></div>
-    <div class="phase"><div class="d">Aug 15–21</div><div class="w">Tour du Mont Blanc — 7 days CCW, Fenêtre d'Arpette · cash: €100+ / 150 CHF</div></div>
-    <div class="phase"><div class="d">Aug 23–28</div><div class="w">Imola work week (bus + trains booked)</div></div>
-    <div class="phase"><div class="d">Aug 28–30</div><div class="w">Stelvio weekend, Bormio → fly Bergamo→Kraków (FR6257)</div></div>
-    <div class="phase"><div class="d">Aug 30–Sep 6</div><div class="w">Poland: Kraków → Zakopane (Tatras) → Wrocław → fly to Split (LOT via Warsaw)</div></div>
-    <div class="phase"><div class="d">Sep 6–11</div><div class="w">Split work week → fly to Budapest (Austrian via Vienna)</div></div>
-    <div class="phase"><div class="d">Sep 11–13</div><div class="w">Wedding, Lake Balaton → BUD→MUC→DEN home 18:45 (United/Lufthansa)</div></div>
+    <h3>Add a trip to the pipeline</h3>
+    <div class="meta" style="margin-bottom:12px">Saves to the shared database — Claude sees it in the next daily scan. Instant estimate below.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+      <label style="font-size:12px;color:#666">1. Where to?<br><input type="text" id="t-dest" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">2. Region<br><select id="t-region" style="width:100%;margin-top:4px" onchange="calcTrip()">
+        <option value="domestic">US domestic</option><option value="mexico">Mexico/Caribbean/Central Am.</option>
+        <option value="europe">Europe</option><option value="asia">Asia / Japan</option>
+        <option value="southam">South America</option><option value="oceania">Oceania / NZ</option>
+        <option value="africa">Africa / Middle East</option></select></label>
+      <label style="font-size:12px;color:#666">3. When? (rough ok)<br><input type="text" id="t-when" placeholder="Mar 2028 / flexible" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">3b. Exact dates<br><div style="display:flex;gap:4px;margin-top:4px"><input type="date" id="t-start" style="width:50%" onchange="syncDates()"><input type="date" id="t-end" style="width:50%" onchange="syncDates()"></div></label>
+      <label style="font-size:12px;color:#666">4. Days?<br><input type="text" id="t-days" placeholder="auto from dates" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">5. Travelers?<br><input type="text" id="t-pax" placeholder="1" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">6. Cabin long-haul?<br><select id="t-cabin" style="width:100%;margin-top:4px" onchange="calcTrip()"><option value="econ">Economy</option><option value="biz" selected>Business</option></select></label>
+      <label style="font-size:12px;color:#666">7. Style?<br><select id="t-style" style="width:100%;margin-top:4px" onchange="calcTrip()">
+        <option value="budget">Budget</option><option value="mid" selected>Mid</option><option value="comfort">Comfort</option></select></label>
+      <label style="font-size:12px;color:#666">8. Anchor / hard constraint?<br><input type="text" id="t-anchor" placeholder="wedding, permit, race…" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+    </div>
+    <label style="font-size:12px;color:#666;display:block;margin-top:10px">9. Anything else?<br><input type="text" id="t-notes" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
   </div>
+  <div class="card" id="t-est"><div class="meta">Answer destination, days, travelers for an estimate.</div></div>
+  <button class="btn" style="margin-bottom:14px" onclick="saveTripDB()">💾 Save to pipeline (Claude will see it)</button>
+</div>
 
-  <div class="group-title">Europe — still to book / do <span id="euro-count"></span></div>
-  <div class="card" id="euro-todos"></div>
-
-  <div class="group-title">Patagonia — future concept</div>
+<div id="chat" class="panel">
   <div class="card">
-    <h3>Santiago → O Circuit (Torres del Paine) → El Calafate / El Chaltén → Carretera Austral <span class="pill info">~25 days · not committed</span></h3>
-    <div class="meta">Season Nov–Mar. Long-haul on points: MR→LifeMiles (~63k biz one-way, no surcharges) or MR/UR→Aeroplan. Campsites open for booking ~Jun–Jul before the season and sell out fast. Deal watcher is hunting DEN→SCL/EZE fares daily.</div>
+    <h3>💬 Talk to the system</h3>
+    <div class="meta" style="margin:4px 0 10px"><b>Ask now</b> = instant AI answer (knows your trips, constraints, balances — but not Gmail/Calendar). <b>Leave for Claude</b> = your full Claude reads it in the next daily scan and can act on calendar, email, and files.</div>
+  </div>
+  <div class="chat-log" id="chat-log"></div>
+  <textarea id="chat-input" placeholder="e.g. Is 9 days enough for Japan in May? / add constraint: ski trip Feb 12-15" style="width:100%;min-height:60px;margin-bottom:8px"></textarea>
+  <div style="display:flex;gap:8px">
+    <button class="btn" id="ask-btn" onclick="askNow()">⚡ Ask now</button>
+    <button class="btn alt" onclick="leaveMessage()">📬 Leave for Claude's daily scan</button>
   </div>
 </div>
 
@@ -91,396 +130,174 @@
 
 <div id="calc" class="panel">
   <div class="card">
-    <h3>Should this trip be points or cash?</h3>
-    <div class="meta" style="margin-bottom:12px">Enter both prices for the same flight/hotel. Verdict uses your playbook thresholds and live balances (Jul 2026).</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-      <label style="font-size:12px;color:#666">Cash price ($)<br><input type="text" id="c-cash" placeholder="e.g. 3800" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
-      <label style="font-size:12px;color:#666">Award price (points)<br><input type="text" id="c-pts" placeholder="e.g. 85000" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
-      <label style="font-size:12px;color:#666">Award taxes/fees ($)<br><input type="text" id="c-fees" placeholder="e.g. 60" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
-      <label style="font-size:12px;color:#666">Points from<br><select id="c-cur" style="width:100%;margin-top:4px" onchange="calcVerdict()"><option value="395323">Amex MR (395k)</option><option value="555503">Chase UR (555k)</option><option value="201383">United (201k)</option></select></label>
+    <h3>Should this be points or cash?</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px">
+      <label style="font-size:12px;color:#666">Cash price ($)<br><input type="text" id="c-cash" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+      <label style="font-size:12px;color:#666">Award (points)<br><input type="text" id="c-pts" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+      <label style="font-size:12px;color:#666">Award fees ($)<br><input type="text" id="c-fees" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+      <label style="font-size:12px;color:#666">Points from<br><select id="c-cur" style="width:100%;margin-top:4px" onchange="calcVerdict()"></select></label>
     </div>
-    <label style="font-size:13px;display:block;margin-top:12px"><input type="checkbox" id="c-plat" checked onchange="calcVerdict()"> It's a flight I'd pay for on the Platinum (5x MR back on cash ≈ 10% rebate)</label>
+    <label style="font-size:13px;display:block;margin-top:12px"><input type="checkbox" id="c-plat" checked onchange="calcVerdict()"> Flight paid on Platinum (5x ≈ 10% back)</label>
   </div>
-  <div class="card" id="c-result"><div class="meta">Enter prices above for a verdict.</div></div>
-  <div class="card" style="font-size:12.5px;color:#666;line-height:1.6">
-    <b>The math:</b> cents-per-point = (cash − award fees) ÷ points. Under 1.5¢ → pay cash, keep the points. 1.5–2¢ → borderline (lean cash for economy, points for premium). Over 2¢ → use points. The Platinum checkbox credits the 5x earn-back against the cash price. For live analysis with real fares, ask Claude: "Tokyo in March — points or cash?"
-  </div>
+  <div class="card" id="c-result"><div class="meta">Enter prices for a verdict.</div></div>
 </div>
 
 <div id="packing" class="panel">
   <div class="tabs" style="position:static;padding:0">
-    <button class="tab sub-tab active" data-trip="eu">🇫🇷 Europe 2026</button>
+    <button class="tab sub-tab active" data-trip="eu">🇫🇷 Europe</button>
     <button class="tab sub-tab" data-trip="pat">🏔️ Patagonia</button>
   </div>
   <div id="pack-list"></div>
 </div>
 
-<div id="docs" class="panel">
-  <details class="card" open><summary style="font-weight:700;cursor:pointer;font-size:15px">🇫🇷 Europe — Rewards & Money Prep</summary>
-    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
-    <b>Wallet:</b> bring Platinum + CSP (no foreign fees); Blue Cash Preferred stays home (2.7% fee). Default swipe abroad: CSP; Platinum for flights only.<br><br>
-    <b>Open bookings — pay with CSP:</b> Chamonix Aug 8 + 21–22, Geneva→Chamonix shuttle, Imola, Bormio + bike, Kraków, Zakopane, Split ×5 (check Chase Travel → $100 credit). Rental car: CSP, decline counter CDW (confirm Italy coverage).<br><br>
-    <b>Flights:</b> set United as Platinum airline ($200 credit covers UA bags). Lounges: Centurion at DEN, Priority Pass at GVA/BUD/VIE/MUC. Ryanair: online check-in or pay €55+.<br><br>
-    <b>⚠️ Insurance:</b> you signed CMBG's discharge — no rescue coverage. Card protections ≠ mountain rescue. Get ÖAV membership (~€70, covers to 6,000 m) before Aug 10. <b>Most important open item.</b><br><br>
-    <b>Credits timing:</b> use Q3 Resy $100 + Lululemon $75 before Aug 7. Uber Cash works in Kraków/Split/Budapest. Hyatt 1:1 decision due Sep 30 (9 days after you land).<br><br>
-    <b>Cash:</b> €100+ / 150 CHF (huts cash-only) via debit-card ATMs. Poland = złoty, Hungary = forint, rest = euro.
-    </div>
-  </details>
-  <details class="card"><summary style="font-weight:700;cursor:pointer;font-size:15px">🏨 Europe — Lodging Shortlist (book now)</summary>
-    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
-    <b>Chamonix (Aug 8 + 21–22):</b> ① Hôtel Le Refuge des Aiglons — adjacent to Chamonix Sud, free duffel storage with booking, pool facing Mont Blanc. ② Auberge du Manoir. Backup storage: Chamlockers/Bounce ~€4/day. Only book nights Pierre doesn't cover (Aug 9/14 pending).<br><br>
-    <b>Split (Sep 6–11):</b> stay in <b>Veli Varoš</b> — quiet, café culture, beside Old Town and Marjan Hill. ① Heritage Hotel 19 (~€100/nt, reliable Wi-Fi). ② Apartments Korta (~€60/nt, confirm AC + desk). Check Chase Travel first for the $100 credit. Must-haves: fast Wi-Fi (work 3–11 PM), AC, 5:15 AM taxi arrangeable.
-    </div>
-  </details>
-  <details class="card"><summary style="font-weight:700;cursor:pointer;font-size:15px">📋 Planning Playbook — how far out to book anything</summary>
-    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
-    <b>Premium award flights:</b> 8–11 mo (space opens ~330 days out) · <b>Cash intl:</b> 2–4 mo · <b>Domestic:</b> 1–3 mo · <b>Permits/camps:</b> the day they open (6–12 mo — the hard constraint everything flexes around) · <b>Peak hotels:</b> 3–6 mo refundable, re-shop later · <b>EU trains:</b> 3–6 mo · <b>Cars/bikes:</b> 1–3 mo free-cancel · <b>Insurance:</b> before any deposit · <b>Passport:</b> 6 mo validity beyond return.<br><br>
-    <b>Flight-hunting rules:</b> check transfer bonuses first · know target prices (EU biz 60k, SA biz 63k, JP RT 75–85k) · one-ways beat round-trips · cheap positioning flight to ORD/IAH/EWR unlocks better space · if cash ÷ points &lt; 1.5¢/pt, pay cash on Platinum.<br><br>
-    <b>New trip?</b> Tell Claude or add it to Trips/Trip-Pipeline.md — you get: route deep-dive, dated T-minus reminders, deal-watch thresholds, full cost model against live balances.
-    </div>
-  </details>
-  <details class="card"><summary style="font-weight:700;cursor:pointer;font-size:15px">🏔️ Patagonia — Points Plan (target Nov 2027)</summary>
-    <div class="meta" style="margin-top:10px;font-size:13px;line-height:1.65;color:#333">
-    <b>Season:</b> Nov–Mar. Targeting Nov 2027 (season opener).<br><br>
-    <b>Timeline:</b> Mar 2027 — start award hunting (reminder set) · Feb–May 2027 — book DEN→SCL/EZE · Jun 2027 — O Circuit camps open, book within days (reminder set) + park pass.<br><br>
-    <b>Points path:</b> MR→LifeMiles ~63k biz one-way (no surcharges) or MR/UR→Aeroplan ~60–70k. Economy: ~30k or UR portal. Budget ~120–140k points RT business.<br><br>
-    <b>In-country:</b> SCL→PUQ flights on Platinum (5x), buses/rental on CSP. Ground budget ~$2,300–2,900/person. Insurance: remote-evac coverage (check if ÖAV term covers it).
-    </div>
-  </details>
-</div>
-
 <div id="status" class="panel">
-  <div class="card">
-    <h3>📨 Message Claude from here</h3>
-    <div class="meta" style="margin:6px 0 10px">Anything — new constraint ("mom visiting Mar 3–8"), a booking you made, a trip thought. Sends via your Gmail; Claude's daily 9am scan picks it up within 24h. Chat remains instant.</div>
-    <div style="display:flex;gap:8px"><input type="text" id="hub-note" placeholder="e.g. add constraint: ski weekend Feb 12-15" style="flex:1"><button class="btn" onclick="sendNote()">Send</button></div>
-  </div>
-  <div class="group-title">Open items <span id="open-count"></span></div>
+  <div class="group-title" style="margin-top:0">Open items <span id="open-count"></span></div>
   <div class="card" id="open-items"></div>
+  <div class="group-title">Constraints (from database)</div>
+  <div class="card" id="constraints-list"></div>
   <div class="group-title">When you get pinged</div>
   <table>
     <tr><th>When</th><th>What</th></tr>
-    <tr><td>Daily 9am</td><td>Deal watch (Claude) — alerts only on exceptional deals; hunting Patagonia fares</td></tr>
-    <tr><td>Sundays 6pm</td><td>Weekly digest (Claude) — trip prep, transfer bonuses, deals, credits, offers</td></tr>
-    <tr><td>1st of month, 9am</td><td>Calendar: all monthly credits reset</td></tr>
-    <tr><td>Jan/Apr/Jul/Oct 1</td><td>Calendar: Resy $100 + Lululemon $75 reset</td></tr>
-    <tr><td>Sep 21, 2026</td><td>Calendar: Hyatt 1:1 deadline decision</td></tr>
-    <tr><td>Aug–Sep 2026</td><td>8 in-trip logistics pings (check-ins, taxis, early buses) — local time</td></tr>
-    <tr><td>Jan 1 / ~Jan 24</td><td>Calendar: Amex annual credits / CSP anniversary</td></tr>
-    <tr><td>Mar 1 + Jun 1, 2027</td><td>Calendar: Patagonia award hunt + camp bookings</td></tr>
+    <tr><td>Daily 9am</td><td>Deal watch + reads your Hub messages & new trips from this database</td></tr>
+    <tr><td>Sundays 6pm</td><td>Weekly digest — trips, bonuses, deals, credits, offers</td></tr>
+    <tr><td>Calendar</td><td>Credit resets (1st, quarterly, annual), trip logistics, deadlines</td></tr>
   </table>
-  <div class="group-title">Where everything lives</div>
-  <table>
-    <tr><td>This site</td><td>Everything — auto-deploys from GitHub; Claude pushes updates directly</td></tr>
-    <tr><td>Rewards folder (Mac)</td><td>Source of truth: guide, trip docs, site source</td></tr>
-    <tr><td>Claude</td><td>The engine: scheduled tasks, live calendar-synced artifact, award research on demand</td></tr>
-  </table>
-</div>
-
-<div id="wishlist" class="panel">
-  <div class="group-title" style="margin-top:0">Ideas matched to you — tap to pre-fill</div>
-  <div class="card" id="suggestions"></div>
-  <div class="card">
-    <h3>Add a trip to the pipeline</h3>
-    <div class="meta" style="margin-bottom:12px">Answer the intake questions — you get an instant cost estimate (cash + points scenarios vs your balances) and a brief to send Claude for the full build-out.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
-      <label style="font-size:12px;color:#666">1. Where to?<br><input type="text" id="t-dest" placeholder="e.g. Japan" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
-      <label style="font-size:12px;color:#666">2. Region<br><select id="t-region" style="width:100%;margin-top:4px" onchange="calcTrip()">
-        <option value="domestic">US domestic</option><option value="mexico">Mexico/Caribbean/Central Am.</option>
-        <option value="europe">Europe</option><option value="asia">Asia / Japan</option>
-        <option value="southam">South America</option><option value="oceania">Oceania / NZ</option>
-        <option value="africa">Africa / Middle East</option></select></label>
-      <label style="font-size:12px;color:#666">3. When? (rough is fine)<br><input type="text" id="t-when" placeholder="e.g. Mar 2028, or flexible" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
-      <label style="font-size:12px;color:#666">3b. Exact dates, if known<br><div style="display:flex;gap:4px;margin-top:4px"><input type="date" id="t-start" style="width:50%" onchange="syncDates()"><input type="date" id="t-end" style="width:50%" onchange="syncDates()"></div></label>
-      <label style="font-size:12px;color:#666">4. How many days?<br><input type="text" id="t-days" placeholder="e.g. 10 (auto-fills from dates)" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
-      <label style="font-size:12px;color:#666">5. Travelers?<br><input type="text" id="t-pax" placeholder="e.g. 2" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
-      <label style="font-size:12px;color:#666">6. Cabin long-haul?<br><select id="t-cabin" style="width:100%;margin-top:4px" onchange="calcTrip()"><option value="econ">Economy</option><option value="biz" selected>Business</option></select></label>
-      <label style="font-size:12px;color:#666">7. Travel style?<br><select id="t-style" style="width:100%;margin-top:4px" onchange="calcTrip()">
-        <option value="budget">Budget (hostels/camping)</option><option value="mid" selected>Mid (hotels/apartments)</option><option value="comfort">Comfort (nice hotels)</option></select></label>
-      <label style="font-size:12px;color:#666">8. Anchor / hard constraint?<br><input type="text" id="t-anchor" placeholder="wedding, permit, race, none…" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
-    </div>
-    <label style="font-size:12px;color:#666;display:block;margin-top:10px">9. Anything else? (who's going, must-dos, decision deadline)<br><input type="text" id="t-notes" placeholder="optional" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
-  </div>
-  <div class="card" id="t-est"><div class="meta">Answer at least destination, days, and travelers for an estimate.</div></div>
-  <div class="card" id="t-brief" style="display:none"></div>
-  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    <button class="btn" onclick="saveTrip()">Save to pipeline</button>
-    <button class="btn" style="background:#fff;color:#1a1a1a" onclick="copyBrief()">Copy brief for Claude</button>
-    <button class="btn" style="background:#2a4d8f;border-color:#2a4d8f" onclick="emailBrief()">📧 Email brief → auto-pickup</button>
-  </div>
-  <div class="meta" style="margin-bottom:14px;font-size:11.5px">📧 sends the brief to your own Gmail with subject "TRIP BRIEF" — Claude's Sunday digest scans for these and starts the build-out automatically. Pasting to Claude in chat is still the instant path.</div>
-  <div class="group-title">Saved trip ideas</div>
-  <div id="wl-list"></div>
 </div>
 
 <div id="playbook" class="panel">
-  <div class="group-title">What points are worth</div>
+  <div class="group-title" style="margin-top:0">What points are worth</div>
   <table>
     <tr><th>Redemption</th><th>Value/pt</th></tr>
-    <tr><td>MR → transfer partner, good premium award</td><td>2–8¢</td></tr>
+    <tr><td>MR → transfer partner, premium award</td><td>2–8¢</td></tr>
     <tr><td>UR → transfer partner, good award</td><td>2–6¢</td></tr>
-    <tr><td>UR → Chase portal (guaranteed floor)</td><td>1.25¢</td></tr>
+    <tr><td>UR → Chase portal (floor)</td><td>1.25¢</td></tr>
     <tr><td>MR → statement credit / gift cards</td><td>0.6–1¢ — never</td></tr>
   </table>
   <div class="group-title">Which card to swipe</div>
   <table>
     <tr><th>Spend</th><th>Card</th><th>Rate</th></tr>
-    <tr><td>Flights (direct / Amex Travel)</td><td>Amex Platinum</td><td>5x MR</td></tr>
-    <tr><td>Prepaid hotels via Amex Travel</td><td>Amex Platinum</td><td>5x MR</td></tr>
+    <tr><td>Flights / Amex Travel hotels</td><td>Amex Platinum</td><td>5x MR</td></tr>
     <tr><td>Amazon / Whole Foods</td><td>Prime Visa</td><td>5%</td></tr>
     <tr><td>Dining, gas/EV, streaming, online groceries</td><td>Sapphire Preferred</td><td>3x UR</td></tr>
     <tr><td>Drugstores</td><td>Freedom Unlimited</td><td>3% → UR</td></tr>
-    <tr><td>Other travel (transit, Airbnb, tolls)</td><td>Sapphire Preferred</td><td>2x UR</td></tr>
+    <tr><td>Other travel</td><td>Sapphire Preferred</td><td>2x UR</td></tr>
     <tr><td>US supermarkets (≤$6k/yr)</td><td>Blue Cash Preferred</td><td>6% cash</td></tr>
     <tr><td><b>Everything else</b></td><td><b>Freedom Unlimited</b></td><td><b>1.5x → UR</b></td></tr>
-    <tr><td><b>Anything abroad</b></td><td><b>CSP (or Platinum for flights)</b></td><td>BCP has 2.7% foreign fee — never abroad</td></tr>
+    <tr><td><b>Anything abroad</b></td><td><b>CSP / Platinum</b></td><td>BCP: 2.7% foreign fee — never</td></tr>
   </table>
-  <div class="group-title">Premium-cabin sweet spots from DEN</div>
+  <div class="group-title">Premium sweet spots from DEN</div>
   <table>
-    <tr><th>Region</th><th>Best path</th><th>Cost</th></tr>
-    <tr><td>Japan / Asia</td><td>MR → ANA (RT biz) or Virgin Atlantic (ANA first)</td><td>75–85k RT biz / 110k 1-way F</td></tr>
-    <tr><td>Europe</td><td>MR or UR → Flying Blue biz; Virgin; Iberia Avios off-peak</td><td>from 34–60k one-way biz</td></tr>
-    <tr><td>South America</td><td>MR → Avianca LifeMiles (no surcharges); UR/MR → Aeroplan</td><td>~60–63k one-way biz</td></tr>
-    <tr><td>Hotels</td><td>UR → Hyatt <b>(⚠️ 1:1 ends Sep 30, 2026)</b></td><td>&gt;2¢/pt routinely</td></tr>
+    <tr><th>Region</th><th>Path</th><th>Cost</th></tr>
+    <tr><td>Japan/Asia</td><td>MR → ANA / Virgin (F)</td><td>75–85k RT biz</td></tr>
+    <tr><td>Europe</td><td>MR/UR → Flying Blue, Virgin, Iberia off-peak</td><td>34–60k oneway biz</td></tr>
+    <tr><td>South America</td><td>MR → LifeMiles (no surcharges), Aeroplan</td><td>~63k oneway biz</td></tr>
+    <tr><td>Hotels</td><td>UR → Hyatt <b>(1:1 ends Sep 30, 2026)</b></td><td>&gt;2¢/pt</td></tr>
   </table>
-  <div class="group-title">Rules & protections</div>
+  <div class="group-title">Rules</div>
   <div class="card" style="font-size:13.5px;line-height:1.6">
-    1. Never transfer speculatively — find the award seat first.<br>
-    2. Check active transfer bonuses before moving points.<br>
-    3. Pool Freedom Unlimited points into CSP before redeeming.<br>
-    4. Prime Visa points are NOT Ultimate Rewards — Amazon only.<br>
-    5. Aeroplan takes both MR and UR — combine for big premium awards.<br>
-    6. Rental cars → CSP, decline counter CDW (primary coverage).<br>
-    7. Flights → Platinum (5x + lounges) · trip protections ride with the paying card.<br>
-    8. Credit card protections ≠ mountain rescue insurance — carry ÖAV/Global Rescue for alpine trips.
+    1. Never transfer speculatively. 2. Check transfer bonuses first. 3. Pool FU → CSP. 4. Prime Visa ≠ UR. 5. Aeroplan takes MR + UR. 6. Rentals → CSP, decline CDW. 7. Flights → Platinum. 8. Cards ≠ mountain rescue insurance (ÖAV).
   </div>
 </div>
 
-<div class="note">Auto-deployed from GitHub — Claude pushes updates. Live calendar-synced version runs in Claude (Travel Rewards HQ artifact). Checkboxes & wishlist save per browser. Updated July 8, 2026.</div>
+<div class="note">Dynamic Hub — data syncs across devices via Supabase and is shared with Claude. <span class="sync" id="sync-status"></span> <button class="del" onclick="sb.auth.signOut().then(()=>location.reload())">sign out</button></div>
+</div>
 
 <script>
-document.querySelectorAll(".tab:not(.sub-tab)").forEach(t => t.addEventListener("click", () => {
-  document.querySelectorAll(".tab:not(.sub-tab)").forEach(x => x.classList.remove("active"));
-  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
-  t.classList.add("active");
-  document.getElementById(t.dataset.p).classList.add("active");
-}));
-function daysUntil(d){ return Math.ceil((d - new Date()) / 86400000); }
-function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const SUPA_URL = "https://tbxhnhahisuahlpbexqj.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieGhuaGFoaXN1YWhscGJleHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NDk2MTksImV4cCI6MjA5OTEyNTYxOX0.6EDg84Nx9nXkUxO4IUjC7EY_Wq5ECoufxqL8a2ZkQEs";
+const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+let DB = { trips: [], constraints: [], messages: [], state: {} };
 
-// Countdown hero
-(function(){
-  const dep = new Date("2026-08-07T10:02:00-06:00"), ret = new Date("2026-09-13T18:45:00-06:00");
-  const n = new Date(); let html;
-  if (n < dep) html = `<h3>🇫🇷 Europe in ${daysUntil(dep)} days</h3><div class="meta">Wheels up Aug 7, 10:02 AM · use Q3 Resy $100 + Lululemon $75 before you go · book alpine rescue insurance (above 2,500 m) before Aug 10</div>`;
-  else if (n <= ret) html = `<h3>🏔️ You're on the Europe trip — ${daysUntil(ret)} days left</h3><div class="meta">Pay with CSP (Platinum for flights) · BCE stays in the drawer · Uber Cash works in Kraków, Split & Budapest</div>`;
-  else html = `<h3>Welcome home 🎉</h3><div class="meta">Hyatt 1:1 transfer deadline: Sep 30, 2026 · Q3 credits expire Sep 30 · time to plan Patagonia?</div>`;
-  document.getElementById("countdown-card").innerHTML = html;
-})();
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function daysUntil(d){ return Math.ceil((new Date(d) - new Date()) / 86400000); }
+function num(id){ return parseFloat((document.getElementById(id).value||"").trim().replace(/[$,]/g,"")) || 0; }
+function setSync(t){ document.getElementById("sync-status").textContent = t; }
 
-// Europe open items
-const EURO_TODOS = [
-  ["ins","⚠️ Alpine rescue insurance (must cover >2,500 m — ÖAV membership is the classic answer)"],
-  ["cham8","Chamonix lodging Aug 8 (arrival night, near Chamonix Sud, ask to store duffel)"],
-  ["shuttle","Geneva Airport → Chamonix shuttle Aug 8 (~9:30–10 AM departure)"],
-  ["pierre","Chase Pierre (CMBG): confirm Aug 9 & Aug 14 nights in writing"],
-  ["cham21","Chamonix lodging Aug 21–22 (2 nights, same hotel)"],
-  ["imola","Imola lodging Aug 23–27 (strong Wi-Fi) — pay with CSP"],
-  ["bormio","Bormio lodging 2–3 nights + reserve rental road bike"],
-  ["krakow","Kraków 1 night (Aug 30)"],
-  ["zakopane","Zakopane 3 nights (good Wi-Fi)"],
-  ["split","Split 5 nights Sep 6–11 (Wi-Fi, AC) — check Chase Travel for the $100 credit"],
-  ["taxi","Pre-book Split airport taxi (Sep 11, ~5:15 AM pickup)"],
-  ["ride","Confirm ~9:45 AM ride from Balaton to BUD (Sep 13)"],
-  ["united","Set United as Platinum airline selection ($200 credit — UA bag fees)"],
-  ["luke","Tell Luke you're skipping the birthday (Aug 22–24), clear calendar block"],
-  ["cash","Get €100+ and ~150 CHF cash + sleeping liner (Bon Abri & Trient require one)"]
+// ---------- Auth ----------
+async function sendLink(){
+  const email = document.getElementById("login-email").value.trim();
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
+  document.getElementById("login-msg").textContent = error ? ("Error: " + error.message) : "✉️ Link sent — check your email, then return here.";
+}
+async function boot(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { document.getElementById("login").style.display = "block"; return; }
+  document.getElementById("app").style.display = "block";
+  await loadAll();
+}
+sb.auth.onAuthStateChange((_e, session) => { if (session && document.getElementById("app").style.display === "none") { document.getElementById("login").style.display = "none"; document.getElementById("app").style.display = "block"; loadAll(); } });
+
+// ---------- Data ----------
+async function loadAll(){
+  setSync("syncing…");
+  const [t, c, m, s] = await Promise.all([
+    sb.from("trips").select("*").order("created_at"),
+    sb.from("constraints").select("*").order("date_start", { nullsFirst: false }),
+    sb.from("messages").select("*").order("created_at").limit(100),
+    sb.from("hub_state").select("*")
+  ]);
+  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || [];
+  DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
+  const b = DB.state.balances || {};
+  document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
+  const cur = document.getElementById("c-cur");
+  cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus();
+  setSync("synced ✓ " + new Date().toLocaleTimeString());
+}
+async function saveState(key){
+  await sb.from("hub_state").upsert({ key, value: DB.state[key] || {}, updated_at: new Date().toISOString() });
+  setSync("saved ✓");
+}
+
+// ---------- Trips ----------
+const ST_LABEL = { idea: "💭 idea", researching: "🔍 researching", dated: "📅 dated", booking: "🎯 booking", booked: "✅ booked" };
+function renderTrips(){
+  const el = document.getElementById("trips");
+  if (!DB.trips.length) { el.innerHTML = '<div class="empty">No trips yet — add one!</div>'; return; }
+  const eu = DB.trips.find(t => t.dest.startsWith("Europe"));
+  let hero = "";
+  if (eu && eu.date_start) {
+    const du = daysUntil(eu.date_start);
+    if (du > 0) hero = `<div class="card hero"><h3>🇫🇷 Europe in ${du} days</h3><div class="meta">Rescue insurance + Chamonix/Split bookings before Aug 7 · use Q3 credits before you go</div></div>`;
+    else if (daysUntil(eu.date_end) >= 0) hero = `<div class="card hero"><h3>🏔️ On the Europe trip — ${daysUntil(eu.date_end)} days left</h3><div class="meta">CSP for everything, Platinum for flights · Uber Cash works in Kraków/Split/Budapest</div></div>`;
+  }
+  el.innerHTML = hero + DB.trips.map(t => `
+    <div class="card"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span></h3>
+    <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}</div>
+    ${t.anchor ? `<div class="meta">⚓ ${esc(t.anchor)}</div>` : ""}
+    ${t.claude_notes ? `<div class="meta" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${esc(t.claude_notes)}</div>` : ""}
+    <div style="margin-top:8px"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
+    <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`).join("");
+}
+async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
+async function delTrip(id){ if (confirm("Remove this trip?")) { await sb.from("trips").delete().eq("id", id); loadAll(); } }
+
+// ---------- Add Trip (estimator) ----------
+const REGION_FLIGHTS = { domestic:[300,25,800,50,"UR portal or United"], mexico:[450,35,1400,70,"United or UR→Aeroplan"], europe:[900,60,3500,110,"MR/UR→Flying Blue or Virgin; Iberia off-peak"], asia:[1100,70,4200,85,"MR→ANA (75–85k RT biz)"], southam:[800,60,2800,126,"MR→LifeMiles (63k/leg, no surcharges)"], oceania:[1400,80,5500,160,"MR/UR→Aeroplan"], africa:[1200,80,4500,140,"MR→Aeroplan or Flying Blue"] };
+const STYLE_RATES = { budget:[45,30,20], mid:[140,70,60], comfort:[300,150,120] };
+const SUGGESTIONS = [
+  { dest:"Japan Alps + Tokyo", region:"asia", days:"12", cabin:"biz", style:"mid", anchor:"Kamikochi hut season May–Oct", why:"THE MR redemption: ANA RT biz 75–85k. Trekking + city, work-week compatible." },
+  { dest:"Hyatt ski weekend (Vail/Beaver Creek)", region:"domestic", days:"4", cabin:"econ", style:"comfort", anchor:"Transfer UR→Hyatt BEFORE Sep 30", why:"Uses the expiring 1:1 Hyatt transfer — drive from Denver." },
+  { dest:"Madrid + Picos de Europa", region:"europe", days:"10", cabin:"biz", style:"mid", anchor:"Iberia off-peak dates", why:"~34k each way biz. Shoulder-season empty trails." },
+  { dest:"Buenos Aires + Mendoza work-week", region:"southam", days:"9", cabin:"biz", style:"mid", anchor:"none", why:"Patagonia warm-up on the same LifeMiles path." }
 ];
-function renderEuro(){
-  const el = document.getElementById("euro-todos");
-  let open = 0;
-  el.innerHTML = EURO_TODOS.map(([k, label]) => {
-    const done = localStorage.getItem("euro_" + k) === "1";
-    if (!done) open++;
-    return `<div class="row"><input type="checkbox" ${done?"checked":""} onchange="localStorage.setItem('euro_${k}', this.checked?'1':'0'); renderEuro();"><div class="nm"><span class="${done?"used":""}">${label}</span></div></div>`;
-  }).join("");
-  document.getElementById("euro-count").innerHTML = `<span class="pill ${open ? "warn" : "ok"}">${open} open</span>`;
+function fillSuggestion(i){
+  const s = SUGGESTIONS[i];
+  ["dest","region","days","cabin","style","anchor"].forEach(k => document.getElementById("t-" + (k === "dest" ? "dest" : k)).value = s[k]);
+  if (!document.getElementById("t-pax").value) document.getElementById("t-pax").value = "1";
+  calcTrip(); document.getElementById("t-dest").scrollIntoView({ behavior: "smooth", block: "center" });
 }
-renderEuro();
-
-// Credits tracker
-function periodInfo(kind){
-  const n = new Date(), y = n.getFullYear(), m = n.getMonth();
-  if (kind === "month") { return { id: `${y}-${String(m+1).padStart(2,"0")}`, end: new Date(y, m+1, 0), start: new Date(y,m,1), label: "this month" }; }
-  if (kind === "quarter") { const q = Math.floor(m/3); return { id: `${y}-Q${q+1}`, end: new Date(y, q*3+3, 0), start: new Date(y,q*3,1), label: `Q${q+1}` }; }
-  if (kind === "half") { const h = m < 6 ? 0 : 1; return { id: `${y}-H${h+1}`, end: new Date(y, h?12:6, 0), start: new Date(y, h?6:0, 1), label: h ? "2nd half" : "1st half" }; }
-  return { id: `${y}`, end: new Date(y, 12, 0), start: new Date(y,0,1), label: `${y}` };
-}
-const CREDITS = [
-  { g: "Monthly", kind: "month", items: [
-    { k: "uber", name: "Uber Cash — Amex Platinum", amt: 15, dec: 35 },
-    { k: "ent", name: "Digital entertainment — Amex Platinum", amt: 25 },
-    { k: "disney", name: "Disney Bundle — Blue Cash Preferred", amt: 10 },
-    { k: "doordash", name: "DoorDash non-restaurant — Sapphire Preferred", amt: 10 } ]},
-  { g: "Quarterly", kind: "quarter", items: [
-    { k: "resy", name: "Resy dining — Amex Platinum", amt: 100 },
-    { k: "lulu", name: "Lululemon — Amex Platinum", amt: 75 } ]},
-  { g: "Semi-annual", kind: "half", items: [
-    { k: "fhr", name: "FHR/THC hotel credit — Amex Platinum", amt: 300 } ]},
-  { g: "Annual", kind: "year", items: [
-    { k: "airline", name: "Airline fee credit (United) — Amex Platinum", amt: 200 },
-    { k: "csphotel", name: "Chase Travel hotel credit — CSP (anniversary ~Jan 24)", amt: 100 } ]}
-];
-function renderCredits(){
-  const el = document.getElementById("credits");
-  let html = "", totalLeft = 0;
-  CREDITS.forEach(grp => {
-    const p = periodInfo(grp.kind), dl = daysUntil(p.end);
-    const pct = Math.min(100, Math.round(((new Date() - p.start) / (p.end - p.start)) * 100));
-    html += `<div class="group-title">${grp.g} — resets in ${dl} day${dl===1?"":"s"} (${p.label})</div><div class="card">`;
-    grp.items.forEach(it => {
-      const key = `credit_${it.k}_${p.id}`;
-      const used = localStorage.getItem(key) === "1";
-      const amt = (it.dec && new Date().getMonth() === 11) ? it.dec : it.amt;
-      if (!used) totalLeft += amt;
-      html += `<div class="row"><input type="checkbox" ${used?"checked":""} onchange="localStorage.setItem('${key}', this.checked?'1':'0'); renderCredits();">
-        <div class="nm"><span class="${used?"used":""}">${it.name}</span></div><div class="amt">$${amt}</div></div>`;
-    });
-    html += `<div class="bar"><div style="width:${pct}%"></div></div></div>`;
-  });
-  el.innerHTML = `<div class="card hero"><h3>$${totalLeft} in credits still unused this cycle</h3><div class="meta">Check off as you use them — resets automatically each period.</div></div>` + html;
-}
-renderCredits();
-
-// Points vs Cash calculator
-function calcVerdict(){
-  const cash = parseFloat(document.getElementById("c-cash").value.replace(/[$,]/g,"")) || 0;
-  const rawPts = document.getElementById("c-pts").value.trim().replace(/[$,]/g,"");
-  const pts = (parseFloat(rawPts) || 0) * (/k\s*$/i.test(rawPts) ? 1000 : 1);
-  const fees = parseFloat(document.getElementById("c-fees").value.replace(/[$,]/g,"")) || 0;
-  const bal = parseFloat(document.getElementById("c-cur").value);
-  const isPlat = document.getElementById("c-plat").checked;
-  const el = document.getElementById("c-result");
-  if (!cash || !pts) { el.innerHTML = '<div class="meta">Enter prices above for a verdict.</div>'; return; }
-  const effCash = isPlat ? cash * 0.9 : cash; // 5x MR at ~2¢ ≈ 10% back
-  const cpp = ((effCash - fees) / pts) * 100;
-  const pctBal = Math.round(pts / bal * 100);
-  let verdict, color, why;
-  if (cpp < 1.5) { verdict = "💵 PAY CASH"; color = "#256a37";
-    why = `You'd only get ${cpp.toFixed(2)}¢ per point — below your 1.5¢ floor${isPlat ? " (after crediting the 5x Platinum earn-back)" : ""}. Pay cash, keep the points for a premium redemption.`; }
-  else if (cpp < 2) { verdict = "🤔 BORDERLINE"; color = "#a15c00";
-    why = `${cpp.toFixed(2)}¢ per point. Defensible either way — lean cash if it's economy, points if it's a premium cabin or cash is tight this month.`; }
-  else { verdict = "🎯 USE POINTS"; color = "#b2543a";
-    why = `${cpp.toFixed(2)}¢ per point — well above the 2¢ bar. This is what you've been hoarding for.${cpp > 4 ? " This is an exceptional redemption." : ""}`; }
-  let balNote = pts > bal ? `⚠️ That's more points than this balance holds (${pctBal}%). Consider combining currencies via Aeroplan or paying cash.` : `Uses ${pctBal}% of this balance (${(bal-pts).toLocaleString()} left after).`;
-  el.innerHTML = `<h3 style="color:${color}">${verdict} <span class="pill info">${cpp.toFixed(2)}¢/pt</span></h3>
-    <div class="meta" style="margin-top:6px">${why}</div>
-    <div class="meta" style="margin-top:6px">${balNote}</div>
-    ${isPlat ? `<div class="meta" style="margin-top:6px">Cash path also earns ~${Math.round(cash*5).toLocaleString()} MR (worth ~$${Math.round(cash*5*0.02).toLocaleString()}), already credited in the math.</div>` : ""}`;
-}
-
-// Packing lists
-const PACKING = {
-  eu: [
-    ["Docs & money", ["Passport","Platinum + CSP + debit (BCP stays home)","€100+ / 150 CHF cash (huts are cash-only)","Alpine rescue insurance proof (ÖAV) — required >2,500 m","Offline booking confirmations + Wallet bus pass"]],
-    ["Electronics", ["Laptop + charger (work weeks)","EU Type C/F + Switzerland Type J adapters","Power bank + headlamp","eSIM with EU + CH data","Noise-canceling headphones"]],
-    ["Mont Blanc course (check CMBG kit email ~Aug 1)", ["Base layers ×2 + fleece + big parka","Hardshell jacket + pants","Gloves ×3 (liner/mid/summit)","Cat-4 glacier sunglasses","Reserve boot/crampon/axe/harness rentals in Chamonix","Gaiters + mountain socks ×3","35–40L pack (doubles for TMB)"]],
-    ["TMB (hut-to-hut)", ["Sleeping liner — REQUIRED Bon Abri & Trient","Trail shoes (broken in) + camp sandals","Trekking poles","Hiking kit ×2, socks ×3","Rain shell + light puffy","Blister kit + earplugs (dortoirs)","2L water + quick-dry towel"]],
-    ["Stelvio", ["Bibs + jersey + cycling socks","Shoes/pedals or accept rentals","Descent layers: arm warmers, vest, full gloves"]],
-    ["Cities + wedding", ["Jeans/chinos + 3-4 shirts + sweater","Swimsuit (Split)","Fun Formal outfit — roll it, steam in Split Sep 10","Dress shoes (or dressy sneakers that double up)"]],
-    ["Health", ["Prescriptions for 5+ weeks","SPF50 + lip balm","Ibuprofen / antihistamine / Imodium","Sink-wash soap + travel line"]]
-  ],
-  pat: [
-    ["Docs & money", ["Passport (carry on border-crossing bus days)","Keep Chile PDI immigration slip","USD cash to exchange in Argentina + CLP for camps","Park pass + camp reservations offline","Driver's license (+ IDP check) for rental"]],
-    ["Big Four", ["Tent w/ full guylines (or rent at camps — decide at booking)","Sleeping bag to -5°C","Insulated pad","55–65L pack + rain cover + liner/dry bags"]],
-    ["Kitchen", ["Stove + pot (buy fuel in Puerto Natales)","Lighter ×2, spork, mug","Breakfasts/lunches carried; refugio dinners pre-decided","2L water + lightweight filter"]],
-    ["Clothing (wind rules)", ["Burly rain shell + rain pants — most important item","Windproof softshell","Big camp puffy","Base layers ×2, hike kit ×2","Gloves + beanie + buff (yes, summer)","Socks ×4, gaiters, camp shoes","Broken-in boots / sturdy trail runners"]],
-    ["Sun & safety", ["Cat 3–4 sunglasses + sun hat + SPF50","Blister kit + meds + tape","Headlamp + spares, whistle, emergency bivvy","Trekking poles (John Gardner descent)","Power bank ×2"]],
-    ["Road trip", ["Offline maps (hours of no signal)","Phone mount + playlist","Plan fuel stops — 100+ km gaps"]]
-  ]
-};
-let curTrip = "eu";
-document.querySelectorAll(".sub-tab").forEach(t => t.addEventListener("click", () => {
-  document.querySelectorAll(".sub-tab").forEach(x => x.classList.remove("active"));
-  t.classList.add("active");
-  curTrip = t.dataset.trip;
-  renderPacking();
-}));
-function renderPacking(){
-  const el = document.getElementById("pack-list");
-  let total = 0, done = 0, html = "";
-  PACKING[curTrip].forEach(([grp, items], gi) => {
-    html += `<div class="group-title">${grp}</div><div class="card">`;
-    items.forEach((it, ii) => {
-      const key = `pack_${curTrip}_${gi}_${ii}`;
-      const c = localStorage.getItem(key) === "1";
-      total++; if (c) done++;
-      html += `<div class="row"><input type="checkbox" ${c?"checked":""} onchange="localStorage.setItem('${key}', this.checked?'1':'0'); renderPacking();"><div class="nm"><span class="${c?"used":""}">${it}</span></div></div>`;
-    });
-    html += `</div>`;
-  });
-  const pct = total ? Math.round(done/total*100) : 0;
-  el.innerHTML = `<div class="card hero"><h3>${done} / ${total} packed (${pct}%)</h3><div class="bar" style="background:#444"><div style="width:${pct}%"></div></div></div>` + html;
-}
-renderPacking();
-
-function sendNote(){
-  const v = document.getElementById("hub-note").value.trim();
-  if (!v) return;
-  window.location.href = "mailto:holdenstirling@gmail.com?subject=" + encodeURIComponent("HUB: " + v.slice(0,80)) + "&body=" + encodeURIComponent(v);
-}
-// Status open items
-const OPEN_ITEMS = [
-  ["insurance","⚠️ Alpine rescue insurance before Aug 10 (ÖAV ~€70) — top priority"],
-  ["runnow","Run both Claude scheduled tasks once (\"Run now\") to pre-approve access"],
-  ["chamonix","Book Chamonix — Refuge des Aiglons, Aug 8 + 21–22 (this week; peak season)"],
-  ["split","Book Split — Veli Varoš, Sep 6–11 (check Chase Travel for $100 credit)"],
-  ["united","Confirm United is the Platinum airline selection"],
-  ["bcp","Enroll the $10/mo Disney Bundle offer on Blue Cash Preferred"],
-  ["combine","Combine Freedom Unlimited 98k points into CSP (Chase → Combine points)"],
-  ["anniv","Verify CSP anniversary in Chase app (~Jan 24 assumed)"],
-  ["hyatt","Decide on Hyatt 1:1 UR transfers before Sep 30, 2026"],
-  ["repopriv","Make GitHub repo travel-rewards private (Settings → Danger Zone)"],
-  ["oldproj","Delete old Vercel project 'travel-rewards' (replaced by travel-rewards-5k3y)"]
-];
-function renderOpen(){
-  const el = document.getElementById("open-items");
-  let open = 0;
-  el.innerHTML = OPEN_ITEMS.map(([k,label]) => {
-    const done = localStorage.getItem("open_" + k) === "1";
-    if (!done) open++;
-    return `<div class="row"><input type="checkbox" ${done?"checked":""} onchange="localStorage.setItem('open_${k}', this.checked?'1':'0'); renderOpen();"><div class="nm"><span class="${done?"used":""}">${label}</span></div></div>`;
-  }).join("");
-  document.getElementById("open-count").innerHTML = `<span class="pill ${open?"warn":"ok"}">${open} open</span>`;
-}
-renderOpen();
-
-// Trip intake + cost estimator
-const REGION_FLIGHTS = { // per person RT from DEN: [cash econ, k-pts econ, cash biz, k-pts biz, best points path]
-  domestic: [300, 25, 800, 50, "UR portal or United"],
-  mexico:   [450, 35, 1400, 70, "United or UR→Aeroplan"],
-  europe:   [900, 60, 3500, 110, "MR/UR→Flying Blue or Virgin; Iberia off-peak"],
-  asia:     [1100, 70, 4200, 85, "MR→ANA (the crown jewel: 75–85k RT biz)"],
-  southam:  [800, 60, 2800, 126, "MR→LifeMiles (63k/leg biz, no surcharges)"],
-  oceania:  [1400, 80, 5500, 160, "MR/UR→Aeroplan or Virgin→ANZ"],
-  africa:   [1200, 80, 4500, 140, "MR→Aeroplan or Flying Blue"]
-};
-const STYLE_RATES = { budget: [45, 30, 20], mid: [140, 70, 60], comfort: [300, 150, 120] }; // [lodging/room/nt, food/day/pp, activities+ground/day/pp]
-const BAL_TOTAL = { MR: 395323, UR: 555503, United: 201383 };
-function num(id){ const v = document.getElementById(id).value.trim().replace(/[$,]/g,""); return parseFloat(v) || 0; }
 function syncDates(){
   const s = document.getElementById("t-start").value, e = document.getElementById("t-end").value;
-  if (s && e) {
-    const d = Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
-    if (d > 0) document.getElementById("t-days").value = d;
-  }
+  if (s && e) { const d = Math.round((new Date(e) - new Date(s)) / 86400000) + 1; if (d > 0) document.getElementById("t-days").value = d; }
   calcTrip();
 }
 function tripData(){
   const s = document.getElementById("t-start").value, e = document.getElementById("t-end").value;
-  const whenText = document.getElementById("t-when").value.trim();
   return { dest: document.getElementById("t-dest").value.trim(), region: document.getElementById("t-region").value,
-    when: (s && e) ? `${s} → ${e}` : (whenText || "flexible"), days: num("t-days"), pax: num("t-pax") || 1,
+    when_text: (s && e) ? `${s} → ${e}` : (document.getElementById("t-when").value.trim() || "flexible"),
+    date_start: s || null, date_end: e || null, days: num("t-days"), pax: num("t-pax") || 1,
     cabin: document.getElementById("t-cabin").value, style: document.getElementById("t-style").value,
     anchor: document.getElementById("t-anchor").value.trim(), notes: document.getElementById("t-notes").value.trim() };
 }
@@ -488,82 +305,219 @@ function estimate(t){
   const f = REGION_FLIGHTS[t.region], s = STYLE_RATES[t.style];
   const flightCash = (t.cabin === "biz" ? f[2] : f[0]) * t.pax;
   const flightPts = (t.cabin === "biz" ? f[3] : f[1]) * 1000 * t.pax;
-  const lodging = s[0] * Math.ceil(t.pax / 2) / t.pax * t.pax * t.days; // rooms shared by 2
-  const daily = (s[1] + s[2]) * t.pax * t.days;
-  const ground = lodging + daily;
+  const ground = s[0] * Math.ceil(t.pax/2) * t.days + (s[1] + s[2]) * t.pax * t.days;
   return { flightCash, flightPts, ground, allCash: flightCash + ground, path: f[4] };
 }
+function conflictsWith(t){
+  if (!t.date_start || !t.date_end) return null;
+  return DB.constraints.find(c => c.date_start && c.date_end && !(t.date_end < c.date_start || t.date_start > c.date_end));
+}
 function calcTrip(){
-  const t = tripData(), el = document.getElementById("t-est"), briefEl = document.getElementById("t-brief");
-  if (!t.dest || !t.days) { el.innerHTML = '<div class="meta">Answer at least destination, days, and travelers for an estimate.</div>'; briefEl.style.display = "none"; return; }
+  const t = tripData(), el = document.getElementById("t-est");
+  if (!t.dest || !t.days) { el.innerHTML = '<div class="meta">Answer destination, days, travelers for an estimate.</div>'; return; }
   const e = estimate(t);
-  const ptsCovered = e.flightPts <= (BAL_TOTAL.MR + BAL_TOTAL.UR + BAL_TOTAL.United);
-  // Feasibility & logistics advisories
-  const MIN_DAYS = { domestic: 2, mexico: 4, europe: 7, asia: 9, southam: 10, oceania: 10, africa: 9 };
-  const advisories = [];
-  if (t.days < MIN_DAYS[t.region]) advisories.push(`⏱️ <b>Tight on time:</b> ${t.days} days is under the comfortable minimum (~${MIN_DAYS[t.region]}) for this region once you subtract 2 travel days${["asia","oceania","africa"].includes(t.region) ? " and serious jet lag" : ""}. Trim ambitions or add days.`);
-  if (["asia","oceania"].includes(t.region)) advisories.push("🌏 12–16h time shift — plan day 1 as a wash and don't book anything important on arrival day.");
-  if (t.days >= 7) advisories.push(`🛋️ Build in ~${Math.max(1, Math.floor(t.days/7))} buffer/rest day${t.days >= 14 ? "s" : ""} — packed itineraries break on weather, transit delays, and tired legs.`);
-  if (/permit|camp|hut|lottery/i.test(t.anchor)) advisories.push("🎫 Permit/camp constraint detected — these dictate everything. Claude will find the exact reservation-opening date; book the trip backward from it.");
-  if (/wedding|race|event|festival/i.test(t.anchor)) advisories.push("📅 Fixed event — book flights early (no date flexibility premium-hunting) and arrive ≥1 full day ahead as insurance.");
-  el.innerHTML = `<h3>Estimate: $${Math.round(e.allCash).toLocaleString()} all-cash · or $${Math.round(e.ground).toLocaleString()} + ${Math.round(e.flightPts/1000)}k points</h3>
-    <div class="meta" style="margin-top:6px">Flights (${t.cabin === "biz" ? "business" : "economy"}, ${t.pax} pax): $${Math.round(e.flightCash).toLocaleString()} cash or ~${Math.round(e.flightPts/1000)}k points via ${e.path}</div>
-    <div class="meta">On the ground (${t.days} days, ${t.style}): ~$${Math.round(e.ground).toLocaleString()} (lodging + food + activities/transit)</div>
-    <div class="meta" style="margin-top:6px">${ptsCovered ? `✅ Points comfortably cover flights — you hold 1.15M across MR/UR/United.` : `⚠️ Flight award exceeds combined balances — economy or cash likely.`} Ballpark ±30% — ask Claude for the researched version.</div>
-    ${advisories.length ? `<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">` + advisories.map(a => `<div class="meta" style="margin-top:4px">${a}</div>`).join("") + `</div>` : ""}`;
-  const brief = `New trip for the pipeline: ${t.dest} (${t.region}), ${t.when}, ~${t.days} days, ${t.pax} traveler(s), ${t.cabin === "biz" ? "business" : "economy"} long-haul, ${t.style} style.${t.anchor ? " Anchor/constraint: " + t.anchor + "." : ""}${t.notes ? " Notes: " + t.notes + "." : ""} Rough estimate: $${Math.round(e.allCash).toLocaleString()} all-cash or $${Math.round(e.ground).toLocaleString()} + ${Math.round(e.flightPts/1000)}k points. Please run the full build-out: route/award research, hard-constraint opening dates, T-minus reminders, deal-watch thresholds, and a refined cost model.`;
-  briefEl.style.display = "block";
-  briefEl.innerHTML = `<div class="group-title" style="margin-top:0">Brief for Claude</div><div class="meta" id="brief-text" style="user-select:all">${esc(brief)}</div>`;
+  const b = DB.state.balances || {};
+  const total = (b.MR||0) + (b.UR||0) + (b.United||0);
+  const MIN_DAYS = { domestic:2, mexico:4, europe:7, asia:9, southam:10, oceania:10, africa:9 };
+  const adv = [];
+  const conflict = conflictsWith(t);
+  if (conflict) adv.push(`🚫 <b>Conflicts with a constraint:</b> ${esc(conflict.label)} (${conflict.date_start}–${conflict.date_end}). Shift the dates.`);
+  if (t.days < MIN_DAYS[t.region]) adv.push(`⏱️ <b>Tight:</b> ${t.days} days is under the comfortable minimum (~${MIN_DAYS[t.region]}) once travel days${["asia","oceania","africa"].includes(t.region) ? " + jet lag" : ""} are subtracted.`);
+  if (["asia","oceania"].includes(t.region)) adv.push("🌏 12–16h shift — day 1 is a wash.");
+  if (t.days >= 7) adv.push(`🛋️ Plan ~${Math.max(1, Math.floor(t.days/7))} buffer day(s).`);
+  if (/permit|camp|hut|lottery/i.test(t.anchor)) adv.push("🎫 Permit constraint — book backward from its opening date (Claude finds it).");
+  if (/wedding|race|event/i.test(t.anchor)) adv.push("📅 Fixed event — arrive ≥1 day early.");
+  el.innerHTML = `<h3>~$${Math.round(e.allCash).toLocaleString()} all-cash · or $${Math.round(e.ground).toLocaleString()} + ${Math.round(e.flightPts/1000)}k pts</h3>
+    <div class="meta" style="margin-top:6px">Flights: $${Math.round(e.flightCash).toLocaleString()} or ~${Math.round(e.flightPts/1000)}k via ${e.path}</div>
+    <div class="meta">Ground (${t.days}d, ${t.style}): ~$${Math.round(e.ground).toLocaleString()}</div>
+    <div class="meta" style="margin-top:6px">${e.flightPts <= total ? "✅ Points cover flights." : "⚠️ Award exceeds combined balances."} ±30% ballpark.</div>
+    ${adv.length ? '<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">' + adv.map(a => `<div class="meta" style="margin-top:4px">${a}</div>`).join("") + "</div>" : ""}`;
 }
-function copyBrief(){
-  const el = document.getElementById("brief-text");
-  if (!el) return;
-  navigator.clipboard && navigator.clipboard.writeText(el.textContent).then(()=>{ el.style.background="#e8f2ea"; setTimeout(()=>el.style.background="",800); });
-}
-function emailBrief(){
-  const el = document.getElementById("brief-text"), t = tripData();
-  if (!el || !t.dest) return;
-  window.location.href = "mailto:holdenstirling@gmail.com?subject=" + encodeURIComponent("TRIP BRIEF: " + t.dest) + "&body=" + encodeURIComponent(el.textContent);
-}
-// Curated suggestions (Claude updates these with pushes)
-const SUGGESTIONS = [
-  { dest: "Japan Alps + Tokyo", region: "asia", days: "12", cabin: "biz", style: "mid", anchor: "Kamikochi hut season May–Oct", why: "THE redemption for your MR: ANA round-trip business 75–85k. Trekking (Yarigatake, Kumano Kodo) + city. Work-week compatible." },
-  { dest: "Hyatt ski weekend (Vail/Beaver Creek)", region: "domestic", days: "4", cabin: "econ", style: "comfort", anchor: "Transfer UR→Hyatt BEFORE Sep 30", why: "Uses the expiring 1:1 Hyatt transfer: ~25–30k/night at Park Hyatt Beaver Creek — drive from Denver, zero flights needed." },
-  { dest: "Madrid + Picos de Europa", region: "europe", days: "10", cabin: "biz", style: "mid", anchor: "Iberia off-peak dates (Jan–May, Oct–Nov)", why: "Iberia Avios off-peak: ~34k each way in business. Mountain trekking + a capital city, shoulder-season empty trails." },
-  { dest: "Buenos Aires + Mendoza work-week", region: "southam", days: "9", cabin: "biz", style: "mid", anchor: "none — fully flexible", why: "Patagonia warm-up: same LifeMiles path (63k biz), test the route, wine country weekend, work Eastern-ish hours easily." }
-];
-function fillSuggestion(i){
-  const s = SUGGESTIONS[i];
-  document.getElementById("t-dest").value = s.dest;
-  document.getElementById("t-region").value = s.region;
-  document.getElementById("t-days").value = s.days;
-  document.getElementById("t-pax").value = document.getElementById("t-pax").value || "1";
-  document.getElementById("t-cabin").value = s.cabin;
-  document.getElementById("t-style").value = s.style;
-  document.getElementById("t-anchor").value = s.anchor;
-  calcTrip();
-  document.getElementById("t-dest").scrollIntoView({behavior:"smooth", block:"center"});
-}
-document.getElementById("suggestions").innerHTML = SUGGESTIONS.map((s,i) =>
-  `<div class="row" style="cursor:pointer" onclick="fillSuggestion(${i})"><div class="nm"><b>${esc(s.dest)}</b> <span class="pill info">${s.cabin === "biz" ? "biz" : "econ"}</span><br><span style="color:#666;font-size:12px">${esc(s.why)}</span></div></div>`).join("");
-function getWL(){ try { return JSON.parse(localStorage.getItem("pipeline") || "[]"); } catch { return []; } }
-function saveTrip(){
+async function saveTripDB(){
   const t = tripData();
-  if (!t.dest || !t.days) return;
-  const e = estimate(t), w = getWL();
-  w.push({ ...t, est: Math.round(e.allCash), pts: Math.round(e.flightPts/1000) });
-  localStorage.setItem("pipeline", JSON.stringify(w)); renderWL();
+  if (!t.dest || !t.days) return alert("Need at least destination and days.");
+  const e = estimate(t);
+  const { error } = await sb.from("trips").insert({ ...t, est_cash: Math.round(e.allCash), est_pts: Math.round(e.flightPts/1000), status: "idea" });
+  if (error) return alert(error.message);
+  await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out.` });
+  ["dest","when","days","pax","anchor","notes"].forEach(k => document.getElementById("t-" + k).value = "");
+  await loadAll();
+  document.querySelector('[data-p="trips"]').click();
 }
-function delWish(i){ const w = getWL(); w.splice(i,1); localStorage.setItem("pipeline", JSON.stringify(w)); renderWL(); }
-function renderWL(){
-  const w = getWL(), el = document.getElementById("wl-list");
-  el.innerHTML = w.length ? w.map((x,i) =>
-    `<div class="card"><h3>${esc(x.dest)} <span class="pill info">${x.cabin === "biz" ? "Business" : "Economy"}</span><span class="pill ok">~$${(x.est||0).toLocaleString()} or +${x.pts||"?"}k pts</span></h3>
-     <div class="meta">${esc(x.when || "flexible")} · ${x.days} days · ${x.pax} pax · ${esc(x.style||"")}${x.anchor ? " · ⚓ " + esc(x.anchor) : ""}</div>
-     <button class="del" onclick="delWish(${i})">remove</button></div>`).join("")
-    : '<div class="empty">Nothing saved yet. Europe (booked) and Patagonia (Nov 2027) live on the Trips tab.</div>';
+
+// ---------- Chat ----------
+function renderChat(){
+  const el = document.getElementById("chat-log");
+  el.innerHTML = DB.messages.map(m => `<div class="msg ${m.sender}">${esc(m.body)}<div class="t">${m.sender === "holden" ? "you" : "claude"} · ${new Date(m.created_at).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" })}</div></div>`).join("");
+  el.scrollTop = el.scrollHeight;
 }
-renderWL();
+async function leaveMessage(){
+  const v = document.getElementById("chat-input").value.trim();
+  if (!v) return;
+  await sb.from("messages").insert({ sender: "holden", body: v });
+  document.getElementById("chat-input").value = "";
+  await loadAll(); document.querySelector('[data-p="chat"]').click();
+}
+async function askNow(){
+  const v = document.getElementById("chat-input").value.trim();
+  if (!v) return;
+  const btn = document.getElementById("ask-btn"); btn.disabled = true; btn.textContent = "thinking…";
+  await sb.from("messages").insert({ sender: "holden", body: v });
+  document.getElementById("chat-input").value = "";
+  await loadAll(); document.querySelector('[data-p="chat"]').click();
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const b = DB.state.balances || {};
+    const context = `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026. TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" | ")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" | ")}. Be concise and concrete. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
+    const history = DB.messages.slice(-10).map(m => ({ role: m.sender === "holden" ? "user" : "assistant", content: m.body }));
+    const r = await fetch(SUPA_URL + "/functions/v1/claude-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + session.access_token, "apikey": SUPA_KEY },
+      body: JSON.stringify({ messages: history, context })
+    });
+    const data = await r.json();
+    await sb.from("messages").insert({ sender: "claude", body: "⚡ " + (data.text || data.error || "no response") });
+  } catch (e) {
+    await sb.from("messages").insert({ sender: "claude", body: "⚡ Error: " + e.message });
+  }
+  btn.disabled = false; btn.textContent = "⚡ Ask now";
+  await loadAll(); document.querySelector('[data-p="chat"]').click();
+}
+
+// ---------- Credits ----------
+function periodInfo(kind){
+  const n = new Date(), y = n.getFullYear(), m = n.getMonth();
+  if (kind === "month") return { id: `${y}-${String(m+1).padStart(2,"0")}`, end: new Date(y, m+1, 0), start: new Date(y, m, 1), label: "this month" };
+  if (kind === "quarter") { const q = Math.floor(m/3); return { id: `${y}-Q${q+1}`, end: new Date(y, q*3+3, 0), start: new Date(y, q*3, 1), label: `Q${q+1}` }; }
+  if (kind === "half") { const h = m < 6 ? 0 : 1; return { id: `${y}-H${h+1}`, end: new Date(y, h?12:6, 0), start: new Date(y, h?6:0, 1), label: h ? "2nd half" : "1st half" }; }
+  return { id: `${y}`, end: new Date(y, 12, 0), start: new Date(y, 0, 1), label: `${y}` };
+}
+const CREDITS = [
+  { g: "Monthly", kind: "month", items: [["uber","Uber Cash — Platinum",15,35],["ent","Digital entertainment — Platinum",25],["disney","Disney Bundle — BCP",10],["doordash","DoorDash non-restaurant — CSP",10]] },
+  { g: "Quarterly", kind: "quarter", items: [["resy","Resy — Platinum",100],["lulu","Lululemon — Platinum",75]] },
+  { g: "Semi-annual", kind: "half", items: [["fhr","FHR/THC hotel — Platinum",300]] },
+  { g: "Annual", kind: "year", items: [["airline","Airline fee (United) — Platinum",200],["csphotel","Chase Travel hotel — CSP (~Jan 24)",100]] }
+];
+function renderCredits(){
+  const el = document.getElementById("credits");
+  const checked = DB.state.credits || {};
+  let html = "", left = 0;
+  CREDITS.forEach(grp => {
+    const p = periodInfo(grp.kind), dl = daysUntil(p.end);
+    const pct = Math.min(100, Math.round((new Date() - p.start) / (p.end - p.start) * 100));
+    html += `<div class="group-title">${grp.g} — resets in ${dl}d (${p.label})</div><div class="card">`;
+    grp.items.forEach(([k, name, amt, dec]) => {
+      const key = `${k}_${p.id}`, used = !!checked[key];
+      const a = (dec && new Date().getMonth() === 11) ? dec : amt;
+      if (!used) left += a;
+      html += `<div class="row"><input type="checkbox" ${used?"checked":""} onchange="toggleState('credits','${key}',this.checked)"><div class="nm"><span class="${used?"used":""}">${name}</span></div><div class="amt">$${a}</div></div>`;
+    });
+    html += `<div class="bar"><div style="width:${pct}%"></div></div></div>`;
+  });
+  el.innerHTML = `<div class="card hero"><h3>$${left} unused this cycle</h3><div class="meta">Synced across your devices — and Claude can see it.</div></div>` + html;
+}
+async function toggleState(domain, key, val){
+  DB.state[domain] = DB.state[domain] || {};
+  if (val) DB.state[domain][key] = true; else delete DB.state[domain][key];
+  ({ credits: renderCredits, packing: renderPacking, openitems: renderStatus })[domain]();
+  await saveState(domain);
+}
+
+// ---------- Points vs Cash ----------
+function calcVerdict(){
+  const cash = num("c-cash"), fees = num("c-fees");
+  const raw = (document.getElementById("c-pts").value||"").trim().replace(/[$,]/g,"");
+  const pts = (parseFloat(raw)||0) * (/k\s*$/i.test(raw) ? 1000 : 1);
+  const bal = parseFloat(document.getElementById("c-cur").value) || 0;
+  const isPlat = document.getElementById("c-plat").checked;
+  const el = document.getElementById("c-result");
+  if (!cash || !pts) { el.innerHTML = '<div class="meta">Enter prices for a verdict.</div>'; return; }
+  const cpp = ((isPlat ? cash*0.9 : cash) - fees) / pts * 100;
+  const pct = Math.round(pts/bal*100);
+  let v, c, why;
+  if (cpp < 1.5) { v = "💵 PAY CASH"; c = "#256a37"; why = `${cpp.toFixed(2)}¢/pt — below your 1.5¢ floor. Keep the points.`; }
+  else if (cpp < 2) { v = "🤔 BORDERLINE"; c = "#a15c00"; why = `${cpp.toFixed(2)}¢/pt — cash if economy, points if premium.`; }
+  else { v = "🎯 USE POINTS"; c = "#b2543a"; why = `${cpp.toFixed(2)}¢/pt — well above the 2¢ bar.${cpp > 4 ? " Exceptional." : ""}`; }
+  el.innerHTML = `<h3 style="color:${c}">${v} <span class="pill info">${cpp.toFixed(2)}¢/pt</span></h3><div class="meta" style="margin-top:6px">${why}</div>
+    <div class="meta" style="margin-top:6px">${pts > bal ? "⚠️ Exceeds this balance — combine via Aeroplan or pay cash." : `Uses ${pct}% of this balance.`}</div>`;
+}
+
+// ---------- Packing ----------
+const PACKING = {
+  eu: [["Docs & money",["Passport","Platinum + CSP + debit (BCP stays home)","€100+ / 150 CHF cash","ÖAV rescue insurance proof","Offline confirmations + Wallet bus pass"]],
+    ["Electronics",["Laptop + charger","EU + Swiss (Type J) adapters","Power bank + headlamp","eSIM with EU + CH data","Noise-canceling"]],
+    ["Mont Blanc course",["Base layers ×2 + fleece + parka","Hardshell top + bottom","Gloves ×3","Cat-4 glacier glasses","Reserve boot/crampon/axe rentals","Gaiters + mountain socks ×3","35–40L pack"]],
+    ["TMB",["Sleeping liner (REQUIRED Bon Abri & Trient)","Trail shoes + camp sandals","Poles","Hike kit ×2, socks ×3","Rain shell + puffy","Blister kit + earplugs","2L water + towel"]],
+    ["Stelvio",["Bibs + jersey + socks","Shoes/pedals or rentals","Descent layers"]],
+    ["Cities + wedding",["Jeans + shirts + sweater","Swimsuit","Fun Formal outfit — steam in Split","Dress shoes"]],
+    ["Health",["Prescriptions 5+ weeks","SPF50 + lip","Ibuprofen/antihistamine/Imodium","Laundry soap sheets"]]],
+  pat: [["Docs & money",["Passport (border crossings)","Keep Chile PDI slip","USD + CLP cash","Park pass + reservations offline","License (+IDP check)"]],
+    ["Big Four",["Tent w/ guylines (or rent at camps)","Bag to -5°C","Insulated pad","55–65L pack + rain cover + liner"]],
+    ["Kitchen",["Stove + pot (fuel in Puerto Natales)","Lighter ×2, spork, mug","Meals plan (refugio dinners?)","2L + filter"]],
+    ["Clothing (wind!)",["Burly rain shell + pants — #1 item","Windproof softshell","Camp puffy","Base ×2, hike kit ×2","Gloves + beanie + buff","Socks ×4, gaiters, camp shoes","Broken-in boots"]],
+    ["Sun & safety",["Cat 3–4 glasses + hat + SPF50","Blister kit + meds","Headlamp + bivvy + whistle","Poles (John Gardner!)","Power bank ×2"]],
+    ["Road trip",["Offline maps","Phone mount","Fuel stop plan — 100+ km gaps"]]]
+};
+let curTrip = "eu";
+function renderPacking(){
+  const el = document.getElementById("pack-list");
+  const checked = DB.state.packing || {};
+  let total = 0, done = 0, html = "";
+  PACKING[curTrip].forEach(([grp, items], gi) => {
+    html += `<div class="group-title">${grp}</div><div class="card">`;
+    items.forEach((it, ii) => {
+      const key = `${curTrip}_${gi}_${ii}`, c = !!checked[key];
+      total++; if (c) done++;
+      html += `<div class="row"><input type="checkbox" ${c?"checked":""} onchange="toggleState('packing','${key}',this.checked)"><div class="nm"><span class="${c?"used":""}">${esc(it)}</span></div></div>`;
+    });
+    html += "</div>";
+  });
+  const pct = total ? Math.round(done/total*100) : 0;
+  el.innerHTML = `<div class="card hero"><h3>${done}/${total} packed (${pct}%)</h3><div class="bar" style="background:#444"><div style="width:${pct}%"></div></div></div>` + html;
+}
+
+// ---------- Status ----------
+const OPEN_ITEMS = [
+  ["insurance","⚠️ Alpine rescue insurance before Aug 10 (ÖAV) — top priority"],
+  ["runnow","Run both Claude scheduled tasks once (\"Run now\")"],
+  ["chamonix","Book Chamonix — Refuge des Aiglons (Aug 8 + 21–22)"],
+  ["split","Book Split — Veli Varoš (Sep 6–11, check Chase Travel $100)"],
+  ["united","Confirm United = Platinum airline selection"],
+  ["bcp","Enroll $10/mo Disney Bundle on BCP"],
+  ["combine","Combine Freedom Unlimited 98k → CSP"],
+  ["anniv","Verify CSP anniversary (~Jan 24) in Chase app"],
+  ["hyatt","Hyatt 1:1 decision before Sep 30, 2026"],
+  ["repopriv","Make GitHub repo private"],
+  ["oldproj","Delete old Vercel project (travel-rewards)"]
+];
+function renderStatus(){
+  const el = document.getElementById("open-items");
+  const checked = DB.state.openitems || {};
+  let open = 0;
+  el.innerHTML = OPEN_ITEMS.map(([k, label]) => {
+    const done = !!checked[k];
+    if (!done) open++;
+    return `<div class="row"><input type="checkbox" ${done?"checked":""} onchange="toggleState('openitems','${k}',this.checked)"><div class="nm"><span class="${done?"used":""}">${esc(label)}</span></div></div>`;
+  }).join("");
+  document.getElementById("open-count").innerHTML = `<span class="pill ${open?"warn":"ok"}">${open} open</span>`;
+  document.getElementById("constraints-list").innerHTML = DB.constraints.map(c =>
+    `<div class="row"><div class="nm"><b>${esc(c.label)}</b> <span class="pill ${c.kind === "standing" ? "info" : "warn"}">${esc(c.kind)}</span><br><span style="color:#666;font-size:12px">${c.date_start ? c.date_start + " → " + c.date_end : "always"} ${esc(c.notes || "")}</span></div></div>`).join("") || '<div class="empty">None.</div>';
+}
+
+// ---------- Tabs & boot ----------
+document.querySelectorAll(".tab:not(.sub-tab)").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab:not(.sub-tab)").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.p).classList.add("active");
+}));
+document.querySelectorAll(".sub-tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".sub-tab").forEach(x => x.classList.remove("active"));
+  t.classList.add("active"); curTrip = t.dataset.trip; renderPacking();
+}));
+document.getElementById("suggestions").innerHTML = SUGGESTIONS.map((s, i) =>
+  `<div class="row" style="cursor:pointer" onclick="fillSuggestion(${i})"><div class="nm"><b>${esc(s.dest)}</b> <span class="pill info">${s.cabin}</span><br><span style="color:#666;font-size:12px">${esc(s.why)}</span></div></div>`).join("");
+boot();
 </script>
 </body>
 </html>
