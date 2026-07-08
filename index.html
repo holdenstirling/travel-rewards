@@ -147,7 +147,7 @@
   </table>
   <div class="group-title">Where everything lives</div>
   <table>
-    <tr><td>This site</td><td>Everything, snapshot — ask Claude to update + re-drop after changes</td></tr>
+    <tr><td>This site</td><td>Everything — auto-deploys from GitHub; Claude pushes updates directly</td></tr>
     <tr><td>Rewards folder (Mac)</td><td>Source of truth: guide, trip docs, site source</td></tr>
     <tr><td>Claude</td><td>The engine: scheduled tasks, live calendar-synced artifact, award research on demand</td></tr>
   </table>
@@ -206,7 +206,7 @@
   </div>
 </div>
 
-<div class="note">Static snapshot — live version with calendar sync runs in Claude (Travel Rewards HQ artifact). Checkboxes & wishlist save to this browser only. Updated July 8, 2026.</div>
+<div class="note">Auto-deployed from GitHub — Claude pushes updates. Live calendar-synced version runs in Claude (Travel Rewards HQ artifact). Checkboxes & wishlist save per browser. Updated July 8, 2026.</div>
 
 <script>
 document.querySelectorAll(".tab:not(.sub-tab)").forEach(t => t.addEventListener("click", () => {
@@ -357,7 +357,9 @@ const OPEN_ITEMS = [
   ["bcp","Enroll the $10/mo Disney Bundle offer on Blue Cash Preferred"],
   ["combine","Combine Freedom Unlimited 98k points into CSP (Chase → Combine points)"],
   ["anniv","Verify CSP anniversary in Chase app (~Jan 24 assumed)"],
-  ["hyatt","Decide on Hyatt 1:1 UR transfers before Sep 30, 2026"]
+  ["hyatt","Decide on Hyatt 1:1 UR transfers before Sep 30, 2026"],
+  ["repopriv","Make GitHub repo travel-rewards private (Settings → Danger Zone)"],
+  ["oldproj","Delete old Vercel project 'travel-rewards' (replaced by travel-rewards-5k3y)"]
 ];
 function renderOpen(){
   const el = document.getElementById("open-items");
