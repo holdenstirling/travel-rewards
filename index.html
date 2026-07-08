@@ -173,6 +173,8 @@
 </div>
 
 <div id="wishlist" class="panel">
+  <div class="group-title" style="margin-top:0">Ideas matched to you — tap to pre-fill</div>
+  <div class="card" id="suggestions"></div>
   <div class="card">
     <h3>Add a trip to the pipeline</h3>
     <div class="meta" style="margin-bottom:12px">Answer the intake questions — you get an instant cost estimate (cash + points scenarios vs your balances) and a brief to send Claude for the full build-out.</div>
@@ -195,10 +197,12 @@
   </div>
   <div class="card" id="t-est"><div class="meta">Answer at least destination, days, and travelers for an estimate.</div></div>
   <div class="card" id="t-brief" style="display:none"></div>
-  <div style="display:flex;gap:8px;margin-bottom:14px">
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
     <button class="btn" onclick="saveTrip()">Save to pipeline</button>
     <button class="btn" style="background:#fff;color:#1a1a1a" onclick="copyBrief()">Copy brief for Claude</button>
+    <button class="btn" style="background:#2a4d8f;border-color:#2a4d8f" onclick="emailBrief()">📧 Email brief → auto-pickup</button>
   </div>
+  <div class="meta" style="margin-bottom:14px;font-size:11.5px">📧 sends the brief to your own Gmail with subject "TRIP BRIEF" — Claude's Sunday digest scans for these and starts the build-out automatically. Pasting to Claude in chat is still the instant path.</div>
   <div class="group-title">Saved trip ideas</div>
   <div id="wl-list"></div>
 </div>
@@ -486,6 +490,32 @@ function copyBrief(){
   if (!el) return;
   navigator.clipboard && navigator.clipboard.writeText(el.textContent).then(()=>{ el.style.background="#e8f2ea"; setTimeout(()=>el.style.background="",800); });
 }
+function emailBrief(){
+  const el = document.getElementById("brief-text"), t = tripData();
+  if (!el || !t.dest) return;
+  window.location.href = "mailto:holdenstirling@gmail.com?subject=" + encodeURIComponent("TRIP BRIEF: " + t.dest) + "&body=" + encodeURIComponent(el.textContent);
+}
+// Curated suggestions (Claude updates these with pushes)
+const SUGGESTIONS = [
+  { dest: "Japan Alps + Tokyo", region: "asia", days: "12", cabin: "biz", style: "mid", anchor: "Kamikochi hut season May–Oct", why: "THE redemption for your MR: ANA round-trip business 75–85k. Trekking (Yarigatake, Kumano Kodo) + city. Work-week compatible." },
+  { dest: "Hyatt ski weekend (Vail/Beaver Creek)", region: "domestic", days: "4", cabin: "econ", style: "comfort", anchor: "Transfer UR→Hyatt BEFORE Sep 30", why: "Uses the expiring 1:1 Hyatt transfer: ~25–30k/night at Park Hyatt Beaver Creek — drive from Denver, zero flights needed." },
+  { dest: "Madrid + Picos de Europa", region: "europe", days: "10", cabin: "biz", style: "mid", anchor: "Iberia off-peak dates (Jan–May, Oct–Nov)", why: "Iberia Avios off-peak: ~34k each way in business. Mountain trekking + a capital city, shoulder-season empty trails." },
+  { dest: "Buenos Aires + Mendoza work-week", region: "southam", days: "9", cabin: "biz", style: "mid", anchor: "none — fully flexible", why: "Patagonia warm-up: same LifeMiles path (63k biz), test the route, wine country weekend, work Eastern-ish hours easily." }
+];
+function fillSuggestion(i){
+  const s = SUGGESTIONS[i];
+  document.getElementById("t-dest").value = s.dest;
+  document.getElementById("t-region").value = s.region;
+  document.getElementById("t-days").value = s.days;
+  document.getElementById("t-pax").value = document.getElementById("t-pax").value || "1";
+  document.getElementById("t-cabin").value = s.cabin;
+  document.getElementById("t-style").value = s.style;
+  document.getElementById("t-anchor").value = s.anchor;
+  calcTrip();
+  document.getElementById("t-dest").scrollIntoView({behavior:"smooth", block:"center"});
+}
+document.getElementById("suggestions").innerHTML = SUGGESTIONS.map((s,i) =>
+  `<div class="row" style="cursor:pointer" onclick="fillSuggestion(${i})"><div class="nm"><b>${esc(s.dest)}</b> <span class="pill info">${s.cabin === "biz" ? "biz" : "econ"}</span><br><span style="color:#666;font-size:12px">${esc(s.why)}</span></div></div>`).join("");
 function getWL(){ try { return JSON.parse(localStorage.getItem("pipeline") || "[]"); } catch { return []; } }
 function saveTrip(){
   const t = tripData();
