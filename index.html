@@ -119,7 +119,7 @@
     <div class="meta" style="margin:4px 0 10px"><b>Ask now</b> = instant AI answer (knows your trips, constraints, balances — but not Gmail/Calendar). <b>Leave for Claude</b> = your full Claude reads it in the next daily scan and can act on calendar, email, and files.</div>
   </div>
   <div class="chat-log" id="chat-log"></div>
-  <textarea id="chat-input" placeholder="e.g. Is 9 days enough for Japan in May? / add constraint: ski trip Feb 12-15" style="width:100%;min-height:60px;margin-bottom:8px"></textarea>
+  <textarea id="chat-input" placeholder="e.g. Is 9 days enough for Japan in May? — Enter sends, Shift+Enter = new line" style="width:100%;min-height:60px;margin-bottom:8px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askNow();}"></textarea>
   <div style="display:flex;gap:8px">
     <button class="btn" id="ask-btn" onclick="askNow()">⚡ Ask now</button>
     <button class="btn alt" onclick="leaveMessage()">📬 Leave for Claude's daily scan</button>
