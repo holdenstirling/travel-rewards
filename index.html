@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Travel Rewards HQ — Holden</title>
+<title>Trips / Travel / Rewards Hub — Holden</title>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,7 +48,7 @@
 </style>
 </head>
 <body>
-<h1>✈️ Travel Rewards HQ</h1>
+<h1>✈️ Trips / Travel / Rewards Hub</h1>
 <div class="sub">Amex Platinum · Sapphire Preferred · Freedom Unlimited · Prime Visa · Blue Cash Preferred · DEN · <b>MR 395k · UR 555k · United 201k</b></div>
 
 <div class="tabs">
@@ -58,7 +58,7 @@
   <button class="tab" data-p="packing">Packing</button>
   <button class="tab" data-p="docs">Docs</button>
   <button class="tab" data-p="status">Status</button>
-  <button class="tab" data-p="wishlist">Wishlist</button>
+  <button class="tab" data-p="wishlist">➕ Add Trip</button>
   <button class="tab" data-p="playbook">Playbook</button>
 </div>
 
@@ -173,12 +173,33 @@
 </div>
 
 <div id="wishlist" class="panel">
-  <div class="wl-form">
-    <input type="text" id="wl-dest" placeholder="Destination" style="flex:2;min-width:140px">
-    <input type="text" id="wl-when" placeholder="When (e.g. Mar 2027)" style="flex:1;min-width:110px">
-    <select id="wl-cabin"><option>Business</option><option>First</option><option>Economy</option></select>
-    <button class="btn" onclick="addWish()">Add</button>
+  <div class="card">
+    <h3>Add a trip to the pipeline</h3>
+    <div class="meta" style="margin-bottom:12px">Answer the intake questions — you get an instant cost estimate (cash + points scenarios vs your balances) and a brief to send Claude for the full build-out.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+      <label style="font-size:12px;color:#666">1. Where to?<br><input type="text" id="t-dest" placeholder="e.g. Japan" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">2. Region<br><select id="t-region" style="width:100%;margin-top:4px" onchange="calcTrip()">
+        <option value="domestic">US domestic</option><option value="mexico">Mexico/Caribbean/Central Am.</option>
+        <option value="europe">Europe</option><option value="asia">Asia / Japan</option>
+        <option value="southam">South America</option><option value="oceania">Oceania / NZ</option>
+        <option value="africa">Africa / Middle East</option></select></label>
+      <label style="font-size:12px;color:#666">3. When (or "flexible")?<br><input type="text" id="t-when" placeholder="e.g. Mar 2028" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">4. How many days?<br><input type="text" id="t-days" placeholder="e.g. 10" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">5. Travelers?<br><input type="text" id="t-pax" placeholder="e.g. 2" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">6. Cabin long-haul?<br><select id="t-cabin" style="width:100%;margin-top:4px" onchange="calcTrip()"><option value="econ">Economy</option><option value="biz" selected>Business</option></select></label>
+      <label style="font-size:12px;color:#666">7. Travel style?<br><select id="t-style" style="width:100%;margin-top:4px" onchange="calcTrip()">
+        <option value="budget">Budget (hostels/camping)</option><option value="mid" selected>Mid (hotels/apartments)</option><option value="comfort">Comfort (nice hotels)</option></select></label>
+      <label style="font-size:12px;color:#666">8. Anchor / hard constraint?<br><input type="text" id="t-anchor" placeholder="wedding, permit, race, none…" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+    </div>
+    <label style="font-size:12px;color:#666;display:block;margin-top:10px">9. Anything else? (who's going, must-dos, decision deadline)<br><input type="text" id="t-notes" placeholder="optional" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
   </div>
+  <div class="card" id="t-est"><div class="meta">Answer at least destination, days, and travelers for an estimate.</div></div>
+  <div class="card" id="t-brief" style="display:none"></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn" onclick="saveTrip()">Save to pipeline</button>
+    <button class="btn" style="background:#fff;color:#1a1a1a" onclick="copyBrief()">Copy brief for Claude</button>
+  </div>
+  <div class="group-title">Saved trip ideas</div>
   <div id="wl-list"></div>
 </div>
 
@@ -419,25 +440,68 @@ function renderOpen(){
 }
 renderOpen();
 
-// Wishlist
-function getWL(){ try { return JSON.parse(localStorage.getItem("wishlist") || "[]"); } catch { return []; } }
-function saveWL(w){ localStorage.setItem("wishlist", JSON.stringify(w)); renderWL(); }
-function addWish(){
-  const d = document.getElementById("wl-dest").value.trim();
-  if (!d) return;
-  const w = getWL();
-  w.push({ dest: d, when: document.getElementById("wl-when").value.trim(), cabin: document.getElementById("wl-cabin").value });
-  document.getElementById("wl-dest").value = ""; document.getElementById("wl-when").value = "";
-  saveWL(w);
+// Trip intake + cost estimator
+const REGION_FLIGHTS = { // per person RT from DEN: [cash econ, k-pts econ, cash biz, k-pts biz, best points path]
+  domestic: [300, 25, 800, 50, "UR portal or United"],
+  mexico:   [450, 35, 1400, 70, "United or UR→Aeroplan"],
+  europe:   [900, 60, 3500, 110, "MR/UR→Flying Blue or Virgin; Iberia off-peak"],
+  asia:     [1100, 70, 4200, 85, "MR→ANA (the crown jewel: 75–85k RT biz)"],
+  southam:  [800, 60, 2800, 126, "MR→LifeMiles (63k/leg biz, no surcharges)"],
+  oceania:  [1400, 80, 5500, 160, "MR/UR→Aeroplan or Virgin→ANZ"],
+  africa:   [1200, 80, 4500, 140, "MR→Aeroplan or Flying Blue"]
+};
+const STYLE_RATES = { budget: [45, 30, 20], mid: [140, 70, 60], comfort: [300, 150, 120] }; // [lodging/room/nt, food/day/pp, activities+ground/day/pp]
+const BAL_TOTAL = { MR: 395323, UR: 555503, United: 201383 };
+function num(id){ const v = document.getElementById(id).value.trim().replace(/[$,]/g,""); return parseFloat(v) || 0; }
+function tripData(){
+  return { dest: document.getElementById("t-dest").value.trim(), region: document.getElementById("t-region").value,
+    when: document.getElementById("t-when").value.trim() || "flexible", days: num("t-days"), pax: num("t-pax") || 1,
+    cabin: document.getElementById("t-cabin").value, style: document.getElementById("t-style").value,
+    anchor: document.getElementById("t-anchor").value.trim(), notes: document.getElementById("t-notes").value.trim() };
 }
-function delWish(i){ const w = getWL(); w.splice(i,1); saveWL(w); }
+function estimate(t){
+  const f = REGION_FLIGHTS[t.region], s = STYLE_RATES[t.style];
+  const flightCash = (t.cabin === "biz" ? f[2] : f[0]) * t.pax;
+  const flightPts = (t.cabin === "biz" ? f[3] : f[1]) * 1000 * t.pax;
+  const lodging = s[0] * Math.ceil(t.pax / 2) / t.pax * t.pax * t.days; // rooms shared by 2
+  const daily = (s[1] + s[2]) * t.pax * t.days;
+  const ground = lodging + daily;
+  return { flightCash, flightPts, ground, allCash: flightCash + ground, path: f[4] };
+}
+function calcTrip(){
+  const t = tripData(), el = document.getElementById("t-est"), briefEl = document.getElementById("t-brief");
+  if (!t.dest || !t.days) { el.innerHTML = '<div class="meta">Answer at least destination, days, and travelers for an estimate.</div>'; briefEl.style.display = "none"; return; }
+  const e = estimate(t);
+  const ptsCovered = e.flightPts <= (BAL_TOTAL.MR + BAL_TOTAL.UR + BAL_TOTAL.United);
+  el.innerHTML = `<h3>Estimate: $${Math.round(e.allCash).toLocaleString()} all-cash · or $${Math.round(e.ground).toLocaleString()} + ${Math.round(e.flightPts/1000)}k points</h3>
+    <div class="meta" style="margin-top:6px">Flights (${t.cabin === "biz" ? "business" : "economy"}, ${t.pax} pax): $${Math.round(e.flightCash).toLocaleString()} cash or ~${Math.round(e.flightPts/1000)}k points via ${e.path}</div>
+    <div class="meta">On the ground (${t.days} days, ${t.style}): ~$${Math.round(e.ground).toLocaleString()} (lodging + food + activities/transit)</div>
+    <div class="meta" style="margin-top:6px">${ptsCovered ? `✅ Points comfortably cover flights — you hold 1.15M across MR/UR/United.` : `⚠️ Flight award exceeds combined balances — economy or cash likely.`} Ballpark ±30% — ask Claude for the researched version.</div>`;
+  const brief = `New trip for the pipeline: ${t.dest} (${t.region}), ${t.when}, ~${t.days} days, ${t.pax} traveler(s), ${t.cabin === "biz" ? "business" : "economy"} long-haul, ${t.style} style.${t.anchor ? " Anchor/constraint: " + t.anchor + "." : ""}${t.notes ? " Notes: " + t.notes + "." : ""} Rough estimate: $${Math.round(e.allCash).toLocaleString()} all-cash or $${Math.round(e.ground).toLocaleString()} + ${Math.round(e.flightPts/1000)}k points. Please run the full build-out: route/award research, hard-constraint opening dates, T-minus reminders, deal-watch thresholds, and a refined cost model.`;
+  briefEl.style.display = "block";
+  briefEl.innerHTML = `<div class="group-title" style="margin-top:0">Brief for Claude</div><div class="meta" id="brief-text" style="user-select:all">${esc(brief)}</div>`;
+}
+function copyBrief(){
+  const el = document.getElementById("brief-text");
+  if (!el) return;
+  navigator.clipboard && navigator.clipboard.writeText(el.textContent).then(()=>{ el.style.background="#e8f2ea"; setTimeout(()=>el.style.background="",800); });
+}
+function getWL(){ try { return JSON.parse(localStorage.getItem("pipeline") || "[]"); } catch { return []; } }
+function saveTrip(){
+  const t = tripData();
+  if (!t.dest || !t.days) return;
+  const e = estimate(t), w = getWL();
+  w.push({ ...t, est: Math.round(e.allCash), pts: Math.round(e.flightPts/1000) });
+  localStorage.setItem("pipeline", JSON.stringify(w)); renderWL();
+}
+function delWish(i){ const w = getWL(); w.splice(i,1); localStorage.setItem("pipeline", JSON.stringify(w)); renderWL(); }
 function renderWL(){
   const w = getWL(), el = document.getElementById("wl-list");
   el.innerHTML = w.length ? w.map((x,i) =>
-    `<div class="card"><h3>${esc(x.dest)} <span class="pill info">${esc(x.cabin)}</span></h3>
-     <div class="meta">${x.when ? esc(x.when) : "flexible"} · from DEN</div>
+    `<div class="card"><h3>${esc(x.dest)} <span class="pill info">${x.cabin === "biz" ? "Business" : "Economy"}</span><span class="pill ok">~$${(x.est||0).toLocaleString()} or +${x.pts||"?"}k pts</span></h3>
+     <div class="meta">${esc(x.when || "flexible")} · ${x.days} days · ${x.pax} pax · ${esc(x.style||"")}${x.anchor ? " · ⚓ " + esc(x.anchor) : ""}</div>
      <button class="del" onclick="delWish(${i})">remove</button></div>`).join("")
-    : '<div class="empty">No wishlist trips yet — Patagonia is tracked separately on the Trips tab.</div>';
+    : '<div class="empty">Nothing saved yet. Europe (booked) and Patagonia (Nov 2027) live on the Trips tab.</div>';
 }
 renderWL();
 </script>
