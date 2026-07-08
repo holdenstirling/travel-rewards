@@ -185,8 +185,9 @@
         <option value="europe">Europe</option><option value="asia">Asia / Japan</option>
         <option value="southam">South America</option><option value="oceania">Oceania / NZ</option>
         <option value="africa">Africa / Middle East</option></select></label>
-      <label style="font-size:12px;color:#666">3. When (or "flexible")?<br><input type="text" id="t-when" placeholder="e.g. Mar 2028" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
-      <label style="font-size:12px;color:#666">4. How many days?<br><input type="text" id="t-days" placeholder="e.g. 10" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">3. When? (rough is fine)<br><input type="text" id="t-when" placeholder="e.g. Mar 2028, or flexible" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+      <label style="font-size:12px;color:#666">3b. Exact dates, if known<br><div style="display:flex;gap:4px;margin-top:4px"><input type="date" id="t-start" style="width:50%" onchange="syncDates()"><input type="date" id="t-end" style="width:50%" onchange="syncDates()"></div></label>
+      <label style="font-size:12px;color:#666">4. How many days?<br><input type="text" id="t-days" placeholder="e.g. 10 (auto-fills from dates)" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
       <label style="font-size:12px;color:#666">5. Travelers?<br><input type="text" id="t-pax" placeholder="e.g. 2" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
       <label style="font-size:12px;color:#666">6. Cabin long-haul?<br><select id="t-cabin" style="width:100%;margin-top:4px" onchange="calcTrip()"><option value="econ">Economy</option><option value="biz" selected>Business</option></select></label>
       <label style="font-size:12px;color:#666">7. Travel style?<br><select id="t-style" style="width:100%;margin-top:4px" onchange="calcTrip()">
@@ -457,9 +458,19 @@ const REGION_FLIGHTS = { // per person RT from DEN: [cash econ, k-pts econ, cash
 const STYLE_RATES = { budget: [45, 30, 20], mid: [140, 70, 60], comfort: [300, 150, 120] }; // [lodging/room/nt, food/day/pp, activities+ground/day/pp]
 const BAL_TOTAL = { MR: 395323, UR: 555503, United: 201383 };
 function num(id){ const v = document.getElementById(id).value.trim().replace(/[$,]/g,""); return parseFloat(v) || 0; }
+function syncDates(){
+  const s = document.getElementById("t-start").value, e = document.getElementById("t-end").value;
+  if (s && e) {
+    const d = Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
+    if (d > 0) document.getElementById("t-days").value = d;
+  }
+  calcTrip();
+}
 function tripData(){
+  const s = document.getElementById("t-start").value, e = document.getElementById("t-end").value;
+  const whenText = document.getElementById("t-when").value.trim();
   return { dest: document.getElementById("t-dest").value.trim(), region: document.getElementById("t-region").value,
-    when: document.getElementById("t-when").value.trim() || "flexible", days: num("t-days"), pax: num("t-pax") || 1,
+    when: (s && e) ? `${s} → ${e}` : (whenText || "flexible"), days: num("t-days"), pax: num("t-pax") || 1,
     cabin: document.getElementById("t-cabin").value, style: document.getElementById("t-style").value,
     anchor: document.getElementById("t-anchor").value.trim(), notes: document.getElementById("t-notes").value.trim() };
 }
