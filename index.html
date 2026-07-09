@@ -793,6 +793,18 @@ function renderUpcoming(){
         <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="evt-${i.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','evt-${i.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','evt-${i.id}')">Add</button></div>`;
       if (i.type === "event" && ME === OWNER)
         body += `<div style="margin-top:8px"><button class="del" style="color:${i.vis === "private" ? "#a15c00" : "#256a37"}" onclick="event.preventDefault();toggleVis('${i.id}','${i.vis}')">${i.vis === "private" ? "🔒 private — tap to share with collaborators" : "👥 shared — tap to make private"}</button></div>`;
+      if (i.type === "event" && (ME === OWNER || i.by === ME)) {
+        body += `<details style="margin-top:8px"><summary class="meta" style="cursor:pointer;font-weight:600">✏️ Edit details</summary>
+          <div style="display:grid;gap:6px;margin-top:8px">
+            <input type="text" id="ed-l-${i.id}" value="${esc(i.label)}" placeholder="Name">
+            <div style="display:flex;gap:6px"><input type="date" id="ed-s-${i.id}" value="${i.date}" style="flex:1"><input type="date" id="ed-e-${i.id}" value="${i.end || ""}" style="flex:1"></div>
+            <input type="text" id="ed-loc-${i.id}" value="${esc(i.loc || "")}" placeholder="📍 Location">
+            <input type="text" id="ed-u-${i.id}" value="${esc(i.url || "")}" placeholder="🔗 Link">
+            <input type="text" id="ed-n-${i.id}" value="${esc(i.notes || "")}" placeholder="📝 Description">
+            <div style="display:flex;gap:8px"><button class="btn" onclick="saveEvent('${i.id}')">Save changes</button>
+            <button class="del" onclick="delEvent('${i.id}')">🗑 delete event</button></div>
+          </div></details>`;
+      }
     }
     html += `<div class="tl-item" style="--kc:${color}"><span class="tl-dot"></span>
       <details class="up2"><summary>
@@ -803,6 +815,30 @@ function renderUpcoming(){
   });
   html += "</div>";
   el.innerHTML = html;
+}
+async function saveEvent(id){
+  if (!requireOnline()) return;
+  let url = document.getElementById("ed-u-" + id).value.trim();
+  if (url && !/^https?:\/\//.test(url)) url = "https://" + url;
+  const label = document.getElementById("ed-l-" + id).value.trim();
+  const date = document.getElementById("ed-s-" + id).value;
+  if (!label || !date) return toast("Name and date are required");
+  await sb.from("events").update({
+    label, date,
+    end_date: document.getElementById("ed-e-" + id).value || null,
+    location: document.getElementById("ed-loc-" + id).value.trim() || null,
+    url: url || null,
+    notes: document.getElementById("ed-n-" + id).value.trim() || null
+  }).eq("id", id);
+  await loadAll();
+  toast("Event updated ✓");
+}
+async function delEvent(id){
+  if (!requireOnline()) return;
+  if (!confirm("Delete this event?")) return;
+  await sb.from("events").delete().eq("id", id);
+  await loadAll();
+  toast("Event deleted");
 }
 async function toggleVis(id, cur){
   if (!requireOnline()) return;
