@@ -489,7 +489,8 @@ function renderTrips(){
     ${t.anchor ? `<div class="meta">⚓ ${esc(t.anchor)}</div>` : ""}
     ${t.created_by && t.created_by !== OWNER ? `<div class="meta">👥 added by ${esc(nameOf(t.created_by))}</div>` : ""}
     ${t.claude_notes ? `<div class="meta" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${esc(t.claude_notes)}</div>` : ""}
-    <div style="margin-top:8px"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
+    <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">💬 Ask about this</button>
     <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`).join("");
 }
 async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
@@ -602,6 +603,17 @@ async function leaveMessage(){
   await loadAll(); document.querySelector('[data-p="chat"]').click();
   toast("📬 Claude will see this in the next daily scan");
 }
+let askCtx = null;
+function askAbout(kind, id){
+  const item = kind === "trip" ? DB.trips.find(t => t.id === id) : DB.events.find(e => e.id === id);
+  if (!item) return;
+  askCtx = { kind, item };
+  document.querySelector('.tab[data-p="chat"]').click();
+  const inp = document.getElementById("chat-input");
+  inp.value = `About "${item.dest || item.label}": `;
+  inp.focus();
+  toast("Item loaded into chat — ask anything about it");
+}
 async function askNow(){
   if (!requireOnline()) return;
   const v = document.getElementById("chat-input").value.trim();
@@ -613,7 +625,8 @@ async function askNow(){
   try {
     const { data: { session } } = await sb.auth.getSession();
     const b = DB.state.balances || {};
-    const context = `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026. TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" | ")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" | ")}. Be concise and concrete. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
+    const context = `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026 (Hyatt: UR transfers 1:1 now; Park Hyatt Beaver Creek is Cat 8 ~35-45k/night, Grand Hyatt Vail Cat 7 ~30-40k, lower-cat Hyatts 8-25k). TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" | ")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" | ")}.${askCtx ? " FOCUS ITEM (the user is asking about this specific item — use all its details): " + JSON.stringify(askCtx.item) : ""} Be concise and concrete with real numbers. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
+    if (askCtx) askCtx = null;
     const history = DB.messages.slice(-10).map(m => ({ role: m.sender === "holden" ? "user" : "assistant", content: m.body }));
     const r = await fetch(SUPA_URL + "/functions/v1/claude-chat", {
       method: "POST",
@@ -870,6 +883,7 @@ function renderUpcoming(){
         <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="evt-${i.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','evt-${i.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','evt-${i.id}')">Add</button></div>`;
       if (i.type === "event" && ME === OWNER)
         body += `<div style="margin-top:8px"><button class="del" style="color:${i.vis === "private" ? "#a15c00" : "#256a37"}" onclick="event.preventDefault();toggleVis('${i.id}','${i.vis}')">${i.vis === "private" ? "🔒 private — tap to share with collaborators" : "👥 shared — tap to make private"}</button></div>`;
+      body += `<div style="margin-top:8px"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="event.preventDefault();askAbout('${i.type}','${i.id}')">💬 Ask about this</button></div>`;
       if (i.type === "event" && (ME === OWNER || i.by === ME)) {
         body += `<details style="margin-top:8px"><summary class="meta" style="cursor:pointer;font-weight:600">✏️ Edit details</summary>
           <div style="display:grid;gap:6px;margin-top:8px">
