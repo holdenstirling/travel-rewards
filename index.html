@@ -115,6 +115,8 @@
   .rw-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid #f0ede7; gap: 10px; }
   .rw-row:last-child { border-bottom: none; }
   .rw-n { font-weight: 700; white-space: nowrap; }
+  .flash { animation: hubflash 1.8s ease; }
+  @keyframes hubflash { 0%, 55% { box-shadow: 0 0 0 3px rgba(178,84,58,.45); } 100% { box-shadow: none; } }
   .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
   .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
   @media (max-width: 640px) {
@@ -498,15 +500,24 @@ function renderTrips(){
     if (du > 0) hero = `<div class="card hero"><h3>🇫🇷 Europe in ${du} days</h3><div class="meta">Rescue insurance + Chamonix/Split bookings before Aug 7 · use Q3 credits before you go</div></div>`;
     else if (daysUntil(eu.date_end) >= 0) hero = `<div class="card hero"><h3>🏔️ On the Europe trip — ${daysUntil(eu.date_end)} days left</h3><div class="meta">CSP for everything, Platinum for flights · Uber Cash works in Kraków/Split/Budapest</div></div>`;
   }
-  el.innerHTML = hero + DB.trips.map(t => `
-    <div class="card"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span></h3>
-    <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}</div>
+  el.innerHTML = hero + DB.trips.map(t => {
+    const tds = (DB.todos || []).filter(x => x.list === "trip_" + t.id), openT = tds.filter(x => !x.done).length;
+    const reds = (DB.redemptions || []).filter(r => r.trip && t.dest.toLowerCase().includes(r.trip.toLowerCase()));
+    const pack = /europe/i.test(t.dest) ? "eu" : /patagonia/i.test(t.dest) ? "pat" : null;
+    return `
+    <div class="card"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span>${openT ? ` <span class="pill warn">☑️ ${openT}</span>` : ""}</h3>
+    <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}${t.est_cash ? ` <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>` : ""}</div>
     ${t.anchor ? `<div class="meta">⚓ ${esc(t.anchor)}</div>` : ""}
     ${t.created_by && t.created_by !== OWNER ? `<div class="meta">👥 added by ${esc(nameOf(t.created_by))}</div>` : ""}
     ${t.claude_notes ? `<div class="meta" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${esc(t.claude_notes)}</div>` : ""}
-    <div style="margin-top:8px;display:flex;gap:8px;align-items:center"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
-    <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">💬 Ask about this</button>
-    <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`).join("");
+    ${reds.length ? `<div class="meta" style="margin-top:6px">📒 ${reds.length} redemption${reds.length>1?"s":""} logged (${reds.reduce((s,r)=>s+r.points,0).toLocaleString()} pts) — <span class="xlink" onclick="goTab('calc','redeem-section')">view →</span></div>` : ""}
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
+    <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">💬 Ask</button>
+    ${t.date_start ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">📅 Upcoming</button>` : ""}
+    ${pack ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goPack('${pack}')">🎒 Packing</button>` : ""}
+    ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="logForTrip('${t.id}')">📒 Log booking</button>` : ""}
+    <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`;
+  }).join("");
 }
 async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
 async function delTrip(id){ if (confirm("Remove this trip?")) { await sb.from("trips").delete().eq("id", id); loadAll(); } }
@@ -543,8 +554,11 @@ function estimate(t){
   const f = REGION_FLIGHTS[t.region], s = STYLE_RATES[t.style];
   const flightCash = (t.cabin === "biz" ? f[2] : f[0]) * t.pax;
   const flightPts = (t.cabin === "biz" ? f[3] : f[1]) * 1000 * t.pax;
-  const ground = s[0] * Math.ceil(t.pax/2) * t.days + (s[1] + s[2]) * t.pax * t.days;
-  return { flightCash, flightPts, ground, allCash: flightCash + ground, path: f[4] };
+  const rooms = Math.ceil(t.pax/2);
+  const lodging = s[0] * rooms * t.days, food = s[1] * t.pax * t.days, act = s[2] * t.pax * t.days;
+  const ground = lodging + food + act;
+  return { flightCash, flightPts, ground, allCash: flightCash + ground, path: f[4],
+    rooms, lodging, food, act, perFlight: (t.cabin === "biz" ? f[2] : f[0]), perPts: (t.cabin === "biz" ? f[3] : f[1]), rates: s };
 }
 function conflictsWith(t){
   if (!t.date_start || !t.date_end) return null;
@@ -569,6 +583,14 @@ function calcTrip(){
     <div class="meta" style="margin-top:6px">Flights: $${Math.round(e.flightCash).toLocaleString()} or ~${Math.round(e.flightPts/1000)}k via ${e.path}</div>
     <div class="meta">Ground (${t.days}d, ${t.style}): ~$${Math.round(e.ground).toLocaleString()}</div>
     <div class="meta" style="margin-top:6px">${e.flightPts <= total ? "✅ Points cover flights." : "⚠️ Award exceeds combined balances."} ±30% ballpark.</div>
+    <details style="margin-top:10px"><summary class="meta" style="cursor:pointer;font-weight:600">🧮 How this was calculated</summary>
+      <div class="meta" style="margin-top:8px"><b>Flights</b> — $${e.perFlight.toLocaleString()} × ${t.pax} pax = $${e.flightCash.toLocaleString()}. Benchmark round-trip from DEN for <b>${t.region}</b> in <b>${t.cabin === "biz" ? "business" : "economy"}</b>: typical 2025–26 cash medians. Points: ${e.perPts}k × ${t.pax} = ${Math.round(e.flightPts/1000)}k, from published award charts via <b>${e.path}</b>.</div>
+      <div class="meta" style="margin-top:6px"><b>Lodging</b> — $${e.rates[0]}/night (${t.style} tier) × ${e.rooms} room${e.rooms>1?"s":""} × ${t.days} nights = $${e.lodging.toLocaleString()}</div>
+      <div class="meta" style="margin-top:6px"><b>Food</b> — $${e.rates[1]}/person/day × ${t.pax} × ${t.days}d = $${e.food.toLocaleString()}</div>
+      <div class="meta" style="margin-top:6px"><b>Activities & local transit</b> — $${e.rates[2]}/person/day × ${t.pax} × ${t.days}d = $${e.act.toLocaleString()}</div>
+      <div class="meta" style="margin-top:8px;border-top:1px solid #f0ede7;padding-top:6px">Style tiers (lodging/food/activities per day): budget $45/$30/$20 · mid $140/$70/$60 · comfort $300/$150/$120. These are planning ballparks (±30%), not quotes — <b>saving the trip makes Claude research real fares, hotels, and dates</b> and replace this with a live cost model.</div>
+      <div style="margin-top:8px"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="askEstimate()">💬 Question this estimate</button></div>
+    </details>
     ${adv.length ? '<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">' + adv.map(a => `<div class="meta" style="margin-top:4px">${a}</div>`).join("") + "</div>" : ""}`;
 }
 async function saveTripDB(){
@@ -619,15 +641,25 @@ async function leaveMessage(){
   toast("📬 Claude will see this in the next daily scan");
 }
 let askCtx = null;
-function askAbout(kind, id){
-  const item = kind === "trip" ? DB.trips.find(t => t.id === id) : DB.events.find(e => e.id === id);
-  if (!item) return;
+function askWith(kind, item, prefill){
   askCtx = { kind, item };
   document.querySelector('.tab[data-p="chat"]').click();
   const inp = document.getElementById("chat-input");
-  inp.value = `About "${item.dest || item.label}": `;
+  inp.value = prefill;
   inp.focus();
   toast("Item loaded into chat — ask anything about it");
+}
+function askAbout(kind, id, q){
+  const item = kind === "trip" ? DB.trips.find(t => t.id === id) : DB.events.find(e => e.id === id);
+  if (!item) return;
+  askWith(kind, item, q || `About "${item.dest || item.label}": `);
+}
+function askEstimate(){
+  const t = tripData();
+  if (!t.dest || !t.days) return toast("Fill in the trip first");
+  const e = estimate(t);
+  askWith("draft trip estimate", { ...t, estimate: { allCash: Math.round(e.allCash), flights_cash: e.flightCash, flights_pts: e.flightPts, lodging: e.lodging, food: e.food, activities: e.act, points_path: e.path } },
+    `About my ${t.dest} estimate (~$${Math.round(e.allCash).toLocaleString()}): `);
 }
 async function askNow(){
   if (!requireOnline()) return;
@@ -640,7 +672,7 @@ async function askNow(){
   try {
     const { data: { session } } = await sb.auth.getSession();
     const b = DB.state.balances || {};
-    const context = `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). PHILOSOPHY: optimize the REWARD first — the experience per dollar — and treat points as mere currency; always answer in terms of what he gets (nights, cabins, trips) and its cash-equivalent value, then which currency buys it best. Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026 (Hyatt: UR transfers 1:1 now; Park Hyatt Beaver Creek is Cat 8 ~35-45k/night, Grand Hyatt Vail Cat 7 ~30-40k, lower-cat Hyatts 8-25k). TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" | ")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" | ")}.${askCtx ? " FOCUS ITEM (the user is asking about this specific item — use all its details): " + JSON.stringify(askCtx.item) : ""} Be concise and concrete with real numbers. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
+    const context = `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). PHILOSOPHY: optimize the REWARD first — the experience per dollar — and treat points as mere currency; always answer in terms of what he gets (nights, cabins, trips) and its cash-equivalent value, then which currency buys it best. Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026 (Hyatt: UR transfers 1:1 now; Park Hyatt Beaver Creek is Cat 8 ~35-45k/night, Grand Hyatt Vail Cat 7 ~30-40k, lower-cat Hyatts 8-25k). Trip estimates on the site are formula ballparks: flights = DEN benchmark (2025-26 medians + published award charts) x pax; ground = style-tier daily rates (budget $45/$30/$20, mid $140/$70/$60, comfort $300/$150/$120 for lodging/food/activities) x days x pax, +/-30%; if asked how an estimate was built, explain this and what live research would refine. TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" | ")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" | ")}.${askCtx ? " FOCUS ITEM (the user is asking about this specific item — use all its details): " + JSON.stringify(askCtx.item) : ""} Be concise and concrete with real numbers. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
     if (askCtx) askCtx = null;
     const history = DB.messages.slice(-10).map(m => ({ role: m.sender === "holden" ? "user" : "assistant", content: m.body }));
     const r = await fetch(SUPA_URL + "/functions/v1/claude-chat", {
@@ -713,13 +745,36 @@ function calcVerdict(){
   else if (cpp < 2) { v = "🤔 BORDERLINE"; c = "#a15c00"; why = `${cpp.toFixed(2)}¢/pt — cash if economy, points if premium.`; }
   else { v = "🎯 USE POINTS"; c = "#b2543a"; why = `${cpp.toFixed(2)}¢/pt — well above the 2¢ bar.${cpp > 4 ? " Exceptional." : ""}`; }
   el.innerHTML = `<h3 style="color:${c}">${v} <span class="pill info">${cpp.toFixed(2)}¢/pt</span></h3><div class="meta" style="margin-top:6px">${why}</div>
-    <div class="meta" style="margin-top:6px">${pts > bal ? "⚠️ Exceeds this balance — combine via Aeroplan or pay cash." : `Uses ${pct}% of this balance.`}</div>`;
+    <div class="meta" style="margin-top:6px">${pts > bal ? "⚠️ Exceeds this balance — combine via Aeroplan or pay cash." : `Uses ${pct}% of this balance.`}</div>
+    <div class="meta" style="margin-top:8px;border-top:1px solid #f0ede7;padding-top:6px">🧮 Math: ($${cash.toLocaleString()}${isPlat ? " × 0.9 — you'd earn 5x MR paying cash on Platinum, so cash is effectively 10% cheaper" : ""} − $${fees.toLocaleString()} award fees) ÷ ${pts.toLocaleString()} pts = <b>${cpp.toFixed(2)}¢ of value per point</b>. Bars: 1.25¢ = guaranteed UR portal floor · 1.5¢ = your keep-the-points line · 2¢+ = good transfer-partner territory.</div>`;
 }
 
 // ---------- Cross-tab nav + rewards-first summary ----------
-function goTab(p){
+function goTab(p, anchorId){
   const el = document.querySelector(`.tab[data-p="${p}"]`);
-  if (el) { el.click(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  if (!el) return;
+  el.click();
+  if (anchorId) {
+    setTimeout(() => {
+      const a = document.getElementById(anchorId);
+      if (a) { a.scrollIntoView({ behavior: "smooth", block: "start" }); a.classList.remove("flash"); void a.offsetWidth; a.classList.add("flash"); }
+    }, 60);
+  } else window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function goPack(which){
+  goTab("packing");
+  const st = document.querySelector(`.sub-tab[data-trip="${which}"]`);
+  if (st) st.click();
+}
+function logForTrip(id){
+  const t = DB.trips.find(x => x.id === id);
+  goTab("calc", "redeem-section");
+  setTimeout(() => { const f = document.getElementById("r-trip"); if (f && t) f.value = t.dest; const l = document.getElementById("r-label"); if (l) l.focus(); }, 150);
+}
+function askEstHow(id){
+  const t = DB.trips.find(x => x.id === id);
+  if (!t) return;
+  askWith("trip", t, `How was the $${(t.est_cash||0).toLocaleString()} estimate for ${t.dest} calculated, and what would make it more accurate?`);
 }
 function renderRewards(){
   const el = document.getElementById("rewards-summary");
@@ -739,6 +794,9 @@ function renderRewards(){
     <div class="rw-row"><span>🛟 Guaranteed floor (UR portal at 1.25¢)</span><span class="rw-n">$${Math.round(UR*0.0125).toLocaleString()}</span></div>
     <div class="meta" style="margin-top:8px">Plus ~$2,400+/yr in card credits — tracked on the <span class="xlink" onclick="goTab('credits')">Credits tab →</span></div>
     <div class="meta" style="margin-top:4px">Turn one into a plan: <span class="xlink" onclick="goTab('addtrip')">Add Trip →</span> · question a number: <span class="xlink" onclick="goTab('chat')">Chat →</span> · book something? <span class="xlink" onclick="document.getElementById('r-label').scrollIntoView({behavior:'smooth',block:'center'})">log it below ↓</span></div>
+    <details style="margin-top:8px"><summary class="meta" style="cursor:pointer;font-weight:600">🧮 Where these numbers come from</summary>
+      <div class="meta" style="margin-top:6px">Each line = your live balance ÷ the published award price: ANA 85k RT biz (Amex chart) · LifeMiles ~63k/leg biz ×2 pax ×2 legs = 252k · Park Hyatt Beaver Creek Cat 8 standard ~40k/night (Hyatt chart, UR 1:1 until Sep 30) · Flying Blue ~60k biz one-way (promo-dependent) · United saver RT ~25k domestic. The $ floor is UR × 1.25¢ — the CSP portal's fixed rate, always available. "~$${totalVal}k total" assumes 2¢/pt, your points-win bar. Award prices move — click any line's tab or ask Chat before transferring.</div>
+    </details>
   </div>`;
 }
 
@@ -763,14 +821,15 @@ function renderRedemptions(){
       <input type="text" id="r-points" placeholder="Points used (e.g. 85000 or 85k)">
       <input type="text" id="r-value" placeholder="Cash value $ (optional)">
       <input type="date" id="r-date" value="${new Date().toISOString().slice(0,10)}">
-      <input type="text" id="r-trip" placeholder="Trip (optional): Patagonia">
+      <input type="text" id="r-trip" list="trip-names" placeholder="Trip (optional): Patagonia">
+      <datalist id="trip-names">${DB.trips.map(t => `<option value="${esc(t.dest)}">`).join("")}</datalist>
     </div>
     <button class="btn" style="margin-top:8px" onclick="logRedemption()">Log redemption (deducts points)</button>
   </div>
   ${reds.length ? `<div class="group-title">History ${withVal.length ? `<span class="pill ${avg >= 2 ? "ok" : avg >= 1.5 ? "warn" : "soon"}">lifetime avg ${avg.toFixed(2)}¢/pt</span>` : ""}</div>
   <div class="card">` + reds.map(r => {
     const cpp = r.cash_value && r.points ? (r.cash_value / r.points * 100) : null;
-    return `<div class="row"><div class="nm"><b>${esc(r.label)}</b> <span class="pill info">${esc(r.program)}${r.partner ? " → " + esc(r.partner) : ""}</span>${cpp ? ` <span class="pill ${cpp >= 2 ? "ok" : cpp >= 1.5 ? "warn" : "soon"}">${cpp.toFixed(2)}¢/pt</span>` : ""}<br><span style="color:#666;font-size:12px">${r.date} · ${r.points.toLocaleString()} pts${r.cash_value ? " · $" + r.cash_value.toLocaleString() + " value" : ""}${r.trip ? " · " + esc(r.trip) : ""}</span></div>
+    return `<div class="row"><div class="nm"><b>${esc(r.label)}</b> <span class="pill info">${esc(r.program)}${r.partner ? " → " + esc(r.partner) : ""}</span>${cpp ? ` <span class="pill ${cpp >= 2 ? "ok" : cpp >= 1.5 ? "warn" : "soon"}">${cpp.toFixed(2)}¢/pt</span>` : ""}<br><span style="color:#666;font-size:12px">${r.date} · ${r.points.toLocaleString()} pts${r.cash_value ? " · $" + r.cash_value.toLocaleString() + " value" : ""}${r.trip ? ` · <span class="xlink" onclick="goTab('trips')">✈️ ${esc(r.trip)}</span>` : ""}</span></div>
     <button class="del" onclick="delRedemption('${r.id}', '${r.program}', ${r.points})">×</button></div>`;
   }).join("") + "</div>" : ""}`;
 }
@@ -924,7 +983,7 @@ function renderUpcoming(){
         <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="evt-${i.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','evt-${i.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','evt-${i.id}')">Add</button></div>`;
       if (i.type === "event" && ME === OWNER)
         body += `<div style="margin-top:8px"><button class="del" style="color:${i.vis === "private" ? "#a15c00" : "#256a37"}" onclick="event.preventDefault();toggleVis('${i.id}','${i.vis}')">${i.vis === "private" ? "🔒 private — tap to share with collaborators" : "👥 shared — tap to make private"}</button></div>`;
-      body += `<div style="margin-top:8px"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="event.preventDefault();askAbout('${i.type}','${i.id}')">💬 Ask about this</button></div>`;
+      body += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="event.preventDefault();askAbout('${i.type}','${i.id}')">💬 Ask about this</button>${i.type === "trip" ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="event.preventDefault();goTab('trips')">✈️ Open in Trips</button>` : ""}</div>`;
       if (i.type === "event" && (ME === OWNER || i.by === ME)) {
         body += `<details style="margin-top:8px"><summary class="meta" style="cursor:pointer;font-weight:600">✏️ Edit details</summary>
           <div style="display:grid;gap:6px;margin-top:8px">
