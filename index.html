@@ -62,7 +62,7 @@
   <div class="card">
     <h3>✈️ Trips / Travel / Rewards Hub</h3>
     <div class="meta" style="margin:8px 0 12px">Private hub — sign in with a magic link.</div>
-    <input type="email" id="login-email" value="holdenstirling@gmail.com" style="width:100%;margin-bottom:8px">
+    <input type="email" id="login-email" placeholder="your@email.com" style="width:100%;margin-bottom:8px" onkeydown="if(event.key==='Enter')sendLink()">
     <button class="btn" style="width:100%" onclick="sendLink()">Email me a sign-in link</button>
     <div class="meta" id="login-msg" style="margin-top:10px"></div>
   </div>
