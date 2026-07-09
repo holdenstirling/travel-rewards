@@ -126,6 +126,10 @@
   .wc-chip { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 9px 4px; font-size: 12.5px; font-weight: 600; cursor: pointer; text-align: center; }
   .wc-chip.active { border-color: #b2543a; background: #fdf3ec; }
   .wc-ans { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: #f4f9f4; border: 1px solid #d7e8d9; }
+  .cnote { white-space: pre-line; line-height: 1.55; }
+  .cnote .li, .cnote .h { display: inline; }
+  .cnote .h { font-weight: 700; }
+  .cnote b { color: #1a1a1a; }
   .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
   .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
   @media (max-width: 640px) {
@@ -520,7 +524,7 @@ function renderTrips(){
     <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}${t.est_cash ? ` <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>` : ""}</div>
     ${t.anchor ? `<div class="meta">⚓ ${esc(t.anchor)}</div>` : ""}
     ${t.created_by && t.created_by !== OWNER ? `<div class="meta">👥 added by ${esc(nameOf(t.created_by))}</div>` : ""}
-    ${t.claude_notes ? `<div class="meta" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${esc(t.claude_notes)}</div>` : ""}
+    ${t.claude_notes ? `<div class="meta cnote" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${md(t.claude_notes)}</div>` : ""}
     ${reds.length ? `<div class="meta" style="margin-top:6px">📒 ${reds.length} redemption${reds.length>1?"s":""} logged (${reds.reduce((s,r)=>s+r.points,0).toLocaleString()} pts) — <span class="xlink" onclick="goTab('calc','redeem-section')">view →</span></div>` : ""}
     <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
     <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">💬 Ask</button>
@@ -558,7 +562,7 @@ function tripDetail(id){
   el.innerHTML = `<div class="card" style="border:2px solid #b2543a">
     <div style="display:flex;justify-content:space-between;align-items:baseline"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span></h3><button class="del" onclick="renderTrips()">✕ close</button></div>
     <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"}${t.anchor ? " · ⚓ " + esc(t.anchor) : ""}</div>
-    ${t.claude_notes ? `<div class="meta" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${esc(t.claude_notes)}</div>` : ""}
+    ${t.claude_notes ? `<div class="meta cnote" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${md(t.claude_notes)}</div>` : ""}
     <div class="group-title" style="margin-top:12px">💰 Budget — planned vs actual</div>
     <div class="row"><div class="nm">Planned (estimate <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>)</div><div class="amt">${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " / " + t.est_pts + "k pts" : ""}</div></div>
     <div class="row"><div class="nm">Booked so far (${reds.length} redemption${reds.length === 1 ? "" : "s"} <span class="xlink" onclick="goTab('calc','redeem-section')">ledger →</span>)</div><div class="amt">${actPts ? actPts.toLocaleString() + " pts" : "—"}${actVal ? " ≈ $" + actVal.toLocaleString() : ""}</div></div>
