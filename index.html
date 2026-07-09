@@ -117,6 +117,15 @@
   .rw-n { font-weight: 700; white-space: nowrap; }
   .flash { animation: hubflash 1.8s ease; }
   @keyframes hubflash { 0%, 55% { box-shadow: 0 0 0 3px rgba(178,84,58,.45); } 100% { box-shadow: none; } }
+  #today-strip .ts { background: #1a1a1a; color: #eee; border-radius: 14px; padding: 12px 16px; margin: 12px 0 4px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+  #today-strip .ts b { color: #fff; }
+  #today-strip .ts .tsi { cursor: pointer; white-space: nowrap; }
+  #today-strip .ts .tsi:hover { text-decoration: underline; }
+  #today-strip .ts.trip-mode { background: linear-gradient(120deg, #7a3423, #b2543a); }
+  .wc-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px; }
+  .wc-chip { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 9px 4px; font-size: 12.5px; font-weight: 600; cursor: pointer; text-align: center; }
+  .wc-chip.active { border-color: #b2543a; background: #fdf3ec; }
+  .wc-ans { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: #f4f9f4; border: 1px solid #d7e8d9; }
   .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
   .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
   @media (max-width: 640px) {
@@ -177,6 +186,8 @@
   <button class="tab" data-p="status">Status</button>
   <button class="tab" data-p="playbook">Playbook</button>
 </div>
+
+<div id="today-strip"></div>
 
 <div id="trips" class="panel active"><div class="empty">Loading…</div></div>
 
@@ -436,7 +447,7 @@ async function loadAll(){
   document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
   const cur = document.getElementById("c-cur");
   cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
-  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards();
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards(); renderToday();
   updateChatBadge(); maybeRestoreTab();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
@@ -505,7 +516,7 @@ function renderTrips(){
     const reds = (DB.redemptions || []).filter(r => r.trip && t.dest.toLowerCase().includes(r.trip.toLowerCase()));
     const pack = /europe/i.test(t.dest) ? "eu" : /patagonia/i.test(t.dest) ? "pat" : null;
     return `
-    <div class="card"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span>${openT ? ` <span class="pill warn">☑️ ${openT}</span>` : ""}</h3>
+    <div class="card"><h3 style="cursor:pointer" onclick="tripDetail('${t.id}')">${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span>${openT ? ` <span class="pill warn">☑️ ${openT}</span>` : ""} <span class="xlink" style="font-weight:400">details →</span></h3>
     <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}${t.est_cash ? ` <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>` : ""}</div>
     ${t.anchor ? `<div class="meta">⚓ ${esc(t.anchor)}</div>` : ""}
     ${t.created_by && t.created_by !== OWNER ? `<div class="meta">👥 added by ${esc(nameOf(t.created_by))}</div>` : ""}
@@ -518,6 +529,53 @@ function renderTrips(){
     ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="logForTrip('${t.id}')">📒 Log booking</button>` : ""}
     <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`;
   }).join("");
+}
+// ---------- Per-trip detail view ----------
+function tripDetail(id){
+  const t = DB.trips.find(x => x.id === id);
+  if (!t) return;
+  const el = document.getElementById("trips");
+  const today = new Date().toISOString().slice(0,10);
+  // Day-by-day: events falling inside the trip window, grouped by date
+  const evs = (t.date_start && t.date_end)
+    ? (DB.events || []).filter(e => e.date >= t.date_start && e.date <= t.date_end).sort((a,b) => a.date.localeCompare(b.date))
+    : [];
+  const byDay = {};
+  evs.forEach(e => { (byDay[e.date] = byDay[e.date] || []).push(e); });
+  const dayHTML = Object.keys(byDay).map(d => {
+    const dd = new Date(d + "T12:00:00");
+    const dayN = t.date_start ? Math.round((new Date(d) - new Date(t.date_start)) / 86400000) + 1 : "";
+    return `<div class="row" style="align-items:flex-start${d === today ? ";background:#fdf3ec;border-radius:8px" : ""}">
+      <div class="dstack" style="min-width:44px"><div class="dnum">${dd.getDate()}</div><div class="dmon">${dd.toLocaleDateString("en-US",{month:"short"})}</div></div>
+      <div class="nm"><span class="pill info">day ${dayN}</span>${d === today ? ' <span class="today-badge">TODAY</span>' : ""}<br>${byDay[d].map(e => `<div style="margin-top:4px">${esc(e.label)}${e.location ? ` · <a href="https://maps.google.com/?q=${encodeURIComponent(e.location)}" target="_blank" rel="noopener">📍</a>` : ""}${e.url ? ` <a href="${esc(e.url)}" target="_blank" rel="noopener">🔗</a>` : ""}${e.notes ? `<div class="meta">${esc(e.notes)}</div>` : ""}</div>`).join("")}</div></div>`;
+  }).join("");
+  // Planned vs actual
+  const reds = (DB.redemptions || []).filter(r => r.trip && t.dest.toLowerCase().includes(r.trip.toLowerCase()));
+  const actPts = reds.reduce((s,r) => s + r.points, 0), actVal = reds.reduce((s,r) => s + (r.cash_value || 0), 0);
+  const tds = (DB.todos || []).filter(x => x.list === "trip_" + t.id);
+  const key = "trip_" + t.id;
+  const pack = /europe/i.test(t.dest) ? "eu" : /patagonia/i.test(t.dest) ? "pat" : null;
+  el.innerHTML = `<div class="card" style="border:2px solid #b2543a">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span></h3><button class="del" onclick="renderTrips()">✕ close</button></div>
+    <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"}${t.anchor ? " · ⚓ " + esc(t.anchor) : ""}</div>
+    ${t.claude_notes ? `<div class="meta" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${esc(t.claude_notes)}</div>` : ""}
+    <div class="group-title" style="margin-top:12px">💰 Budget — planned vs actual</div>
+    <div class="row"><div class="nm">Planned (estimate <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>)</div><div class="amt">${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " / " + t.est_pts + "k pts" : ""}</div></div>
+    <div class="row"><div class="nm">Booked so far (${reds.length} redemption${reds.length === 1 ? "" : "s"} <span class="xlink" onclick="goTab('calc','redeem-section')">ledger →</span>)</div><div class="amt">${actPts ? actPts.toLocaleString() + " pts" : "—"}${actVal ? " ≈ $" + actVal.toLocaleString() : ""}</div></div>
+    ${t.est_pts && actPts ? `<div class="bar"><div style="width:${Math.min(100, Math.round(actPts / (t.est_pts * 1000) * 100))}%"></div></div><div class="meta">${Math.round(actPts / (t.est_pts * 1000) * 100)}% of planned points used</div>` : ""}
+    <div class="group-title" style="margin-top:12px">📆 Day by day</div>
+    ${dayHTML || `<div class="meta">No dated events inside this trip yet — add events on <span class="xlink" onclick="goTab('upcoming')">📅 Upcoming</span> with dates ${t.date_start ? `between ${t.date_start} and ${t.date_end}` : "once the trip has dates"} and they'll appear here as the day plan.</div>`}
+    <div class="group-title" style="margin-top:12px">☑️ Tasks</div>
+    ${tds.map(todoRow).join("") || '<div class="meta">Nothing yet.</div>'}
+    <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="td-add-${t.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','td-add-${t.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','td-add-${t.id}')">Add</button></div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">💬 Ask</button>
+      ${pack ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goPack('${pack}')">🎒 Packing</button>` : ""}
+      ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="logForTrip('${t.id}')">📒 Log booking</button>` : ""}
+      <button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">📅 Upcoming</button>
+    </div></div>
+    <div class="meta" style="margin:10px 0"><span class="xlink" onclick="renderTrips()">← all trips</span></div>`;
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
 async function delTrip(id){ if (confirm("Remove this trip?")) { await sb.from("trips").delete().eq("id", id); loadAll(); } }
@@ -749,6 +807,69 @@ function calcVerdict(){
     <div class="meta" style="margin-top:8px;border-top:1px solid #f0ede7;padding-top:6px">🧮 Math: ($${cash.toLocaleString()}${isPlat ? " × 0.9 — you'd earn 5x MR paying cash on Platinum, so cash is effectively 10% cheaper" : ""} − $${fees.toLocaleString()} award fees) ÷ ${pts.toLocaleString()} pts = <b>${cpp.toFixed(2)}¢ of value per point</b>. Bars: 1.25¢ = guaranteed UR portal floor · 1.5¢ = your keep-the-points line · 2¢+ = good transfer-partner territory.</div>`;
 }
 
+// ---------- Which card? instant picker ----------
+const WHICH_CARD = {
+  "🍽️ Dining": ["Sapphire Preferred", "3x UR", "Runner-up: nothing close. Abroad too — CSP has no foreign fee."],
+  "🛒 Groceries": ["Blue Cash Preferred", "6% cash (US supermarkets, ≤$6k/yr)", "Online grocery orders: CSP 3x. Abroad: CSP — BCP charges 2.7%. After the $6k cap: FU 1.5x."],
+  "📦 Amazon / WF": ["Prime Visa", "5%", "Amazon + Whole Foods only. These points are NOT Ultimate Rewards."],
+  "✈️ Flights": ["Amex Platinum", "5x MR", "Book direct with airline or Amex Travel. Trip protections ride with this card."],
+  "🏨 Hotels / Airbnb": ["Sapphire Preferred", "2x UR", "Prepaid via Amex Travel (FHR): Platinum 5x. Chase Travel: CSP anniversary $100 credit first."],
+  "⛽ Gas / EV": ["Sapphire Preferred", "3x UR", "Also 3x on streaming and online groceries."],
+  "📺 Streaming": ["Blue Cash Preferred", "6% cash", "Includes Disney Bundle ($10/mo credit if enrolled). CSP gives 3x if you'd rather earn UR."],
+  "💊 Drugstores": ["Freedom Unlimited", "3% → UR", "Pools into CSP for transfer partners."],
+  "🚆 Transit / other travel": ["Sapphire Preferred", "2x UR", "Trains, tolls, rideshare, parking, ferries."],
+  "🌍 Anything abroad": ["Sapphire Preferred", "no foreign fee", "Platinum for flights. NEVER Blue Cash Preferred abroad — 2.7% fee eats the rewards."],
+  "🧾 Everything else": ["Freedom Unlimited", "1.5x → UR", "The default swipe when nothing above matches."],
+  "🎪 Rental car": ["Sapphire Preferred", "2x + primary CDW", "Decline the counter coverage — CSP's is primary."]
+};
+function whichCardHTML(){
+  return `<div class="card"><h3>💳 Which card?</h3><div class="meta" style="margin:4px 0 10px">Tap what you're buying — from the swipe table in the strategy guide.</div>
+    <div class="wc-chips">${Object.keys(WHICH_CARD).map(k => `<button class="wc-chip" onclick="pickCard(this,'${k.replace(/'/g,"\\'")}')">${k}</button>`).join("")}</div>
+    <div id="wc-ans"></div></div>`;
+}
+function pickCard(btn, k){
+  document.querySelectorAll(".wc-chip").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  const [card, rate, note] = WHICH_CARD[k];
+  document.getElementById("wc-ans").innerHTML = `<div class="wc-ans"><b style="font-size:16px">${card}</b> <span class="pill ok">${rate}</span><div class="meta" style="margin-top:4px">${note}</div></div>`;
+}
+
+// ---------- Today strip + in-trip mode ----------
+function renderToday(){
+  const el = document.getElementById("today-strip");
+  if (!el) return;
+  const today = new Date().toISOString().slice(0,10);
+  const live = DB.trips.find(t => t.date_start && t.date_end && t.date_start <= today && t.date_end >= today);
+  if (live) {
+    const day = Math.round((new Date(today) - new Date(live.date_start)) / 86400000) + 1;
+    const totalD = Math.round((new Date(live.date_end) - new Date(live.date_start)) / 86400000) + 1;
+    const nexts = (DB.events || []).filter(e => e.date >= today && (!live.date_end || e.date <= live.date_end)).sort((a,b) => a.date.localeCompare(b.date)).slice(0,2);
+    const tds = (DB.todos || []).filter(t => t.list === "trip_" + live.id && !t.done).length;
+    el.innerHTML = `<div class="ts trip-mode">
+      <span class="tsi" onclick="goTab('trips')">✈️ <b>${esc(live.dest)}</b> — day ${day}/${totalD}</span>
+      ${nexts.map(n => `<span class="tsi" onclick="goTab('upcoming')">📍 ${n.date === today ? "<b>today</b>" : new Date(n.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})}: ${esc(n.label)}</span>`).join("")}
+      ${tds ? `<span class="tsi" onclick="goTab('upcoming')">☑️ <b>${tds}</b> open tasks</span>` : ""}
+      <span class="tsi" onclick="goTab('packing')">🎒 packing</span></div>`;
+    return;
+  }
+  const items = [];
+  (DB.events || []).forEach(e => { if (e.date >= today) items.push({ date: e.date, label: e.label }); });
+  DB.trips.forEach(t => { if (t.date_start && t.date_start >= today) items.push({ date: t.date_start, label: "✈️ " + t.dest }); });
+  items.sort((a,b) => a.date.localeCompare(b.date));
+  const next = items[0];
+  let bits = [];
+  if (next) bits.push(`<span class="tsi" onclick="goTab('upcoming')">⏭️ <b>${daysUntil(next.date) === 0 ? "Today" : "in " + daysUntil(next.date) + "d"}</b>: ${esc(next.label).slice(0,42)}</span>`);
+  if (ME === OWNER) {
+    const q = periodInfo("quarter");
+    bits.push(`<span class="tsi" onclick="goTab('credits')">💳 credits reset in <b>${daysUntil(q.end)}d</b></span>`);
+    const openT = (DB.todos || []).filter(t => t.list === "general" && !t.done).length;
+    if (openT) bits.push(`<span class="tsi" onclick="goTab('todo')">✅ <b>${openT}</b> to-dos</span>`);
+    const bu = (DB.state.balances || {}).updated;
+    if (bu && (new Date() - new Date(bu)) / 86400000 > 30) bits.push(`<span class="tsi" onclick="goTab('calc')">⚠️ balances <b>${Math.round((new Date() - new Date(bu))/86400000)}d</b> old</span>`);
+  }
+  el.innerHTML = bits.length ? `<div class="ts">${bits.join("")}</div>` : "";
+}
+
 // ---------- Cross-tab nav + rewards-first summary ----------
 function goTab(p, anchorId){
   const el = document.querySelector(`.tab[data-p="${p}"]`);
@@ -779,11 +900,11 @@ function askEstHow(id){
 function renderRewards(){
   const el = document.getElementById("rewards-summary");
   if (!el) return;
-  if (ME !== OWNER) { el.innerHTML = ""; return; }
+  if (ME !== OWNER) { el.innerHTML = whichCardHTML(); return; }
   const b = DB.state.balances || {};
   const MR = b.MR || 0, UR = b.UR || 0, UA = b.United || 0;
   const totalVal = Math.round((MR + UR + UA) * 0.02 / 1000);
-  el.innerHTML = `<div class="card hero"><h3>🎁 What your points can buy right now</h3>
+  el.innerHTML = whichCardHTML() + `<div class="card hero"><h3>🎁 What your points can buy right now</h3>
     <div class="meta" style="color:#bbb">Rewards first, points second — the currency only matters for what it turns into. Rough total: <b style="color:#fff">~$${totalVal.toLocaleString()}k of travel</b> at good redemptions.</div></div>
   <div class="card">
     <div class="rw-row"><span>🇯🇵 Japan round-trips in <b>business</b> (ANA via MR)</span><span class="rw-n">×${Math.floor(MR/85000)}</span></div>
