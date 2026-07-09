@@ -284,7 +284,8 @@ async function requestAccess(email){
   await sb.from("access_requests").insert({ email, name });
   showRequestAccess(email);
 }
-sb.auth.onAuthStateChange((_e, session) => { if (session && document.getElementById("app").style.display === "none") { document.getElementById("login").style.display = "none"; document.getElementById("app").style.display = "block"; loadAll(); } });
+let booted = false;
+sb.auth.onAuthStateChange((_e, session) => { if (session && !booted && document.getElementById("app").style.display === "none") { booted = true; document.getElementById("login").style.display = "none"; boot(); } });
 
 // ---------- Data ----------
 async function loadAll(){
