@@ -80,6 +80,8 @@
   .tab .dot { display: inline-block; width: 7px; height: 7px; background: #b3261e; border-radius: 50%; margin-left: 5px; vertical-align: middle; }
   .icon-btn { border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 14px; }
   .icon-btn:hover { background: #f0efeb; }
+  #offline-banner { display: none; position: sticky; top: 0; z-index: 20; background: #a15c00; color: #fff; text-align: center; font-size: 12.5px; padding: 7px 10px; border-radius: 8px; margin-bottom: 10px; }
+  body.offline #offline-banner { display: block; }
   @media (max-width: 600px) {
     body { padding: 10px; padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     h1 { font-size: 19px; }
@@ -112,6 +114,7 @@
 </div>
 
 <div id="app" style="display:none">
+<div id="offline-banner">📴 Offline — showing last synced data (read-only)</div>
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
   <h1>✈️ Trips / Travel / Rewards Hub</h1>
   <button class="icon-btn" title="Refresh" onclick="loadAll().then(()=>toast('Refreshed ✓'))">↻</button>
@@ -309,6 +312,13 @@ async function sendLink(){
 async function boot(){
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { document.getElementById("login").style.display = "block"; return; }
+  // offline shortcut: signed in + cached data -> straight to read-only view
+  if (!navigator.onLine && localStorage.getItem("hubcache")) {
+    document.getElementById("app").style.display = "block";
+    ME = session.user.email;
+    restoreOffline();
+    return;
+  }
   // membership gate: non-members see request-access instead of the app
   const { data: me } = await sb.from("allowed_users").select("email").eq("email", session.user.email);
   if (!me || !me.length) { showRequestAccess(session.user.email); return; }
@@ -348,7 +358,10 @@ async function loadAll(){
     sb.from("todos").select("*").order("created_at"),
     sb.from("resources").select("*").order("category")
   ]);
+  if (t.error && c.error && m.error) { restoreOffline(); return; } // network down mid-session
   DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || []; DB.todos = td.data || []; DB.resources = rs.data || [];
+  document.body.classList.remove("offline");
+  localStorage.setItem("hubcache", JSON.stringify(DB));
   if (ME !== OWNER) { const ab = document.getElementById("ask-btn"); if (ab) { ab.disabled = true; ab.textContent = "⚡ owner only"; } }
   // first sign-in: ask new members for a display name
   const meRow = DB.users.find(x => x.email === ME);
@@ -375,6 +388,21 @@ function toast(msg){
   t.textContent = msg; t.classList.add("show");
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
 }
+function requireOnline(){
+  if (!navigator.onLine) { toast("📴 Offline — changes are disabled until you reconnect"); return false; }
+  return true;
+}
+function restoreOffline(){
+  const c = localStorage.getItem("hubcache");
+  document.body.classList.add("offline");
+  if (!c) { setSync("offline — nothing cached yet"); return; }
+  try { DB = JSON.parse(c); } catch { return; }
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources();
+  setSync("offline · last sync cached");
+}
+window.addEventListener("offline", () => document.body.classList.add("offline"));
+window.addEventListener("online", () => { document.body.classList.remove("offline"); toast("Back online — syncing"); loadAll(); });
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 let tabRestored = false;
 function maybeRestoreTab(){
   if (tabRestored) return; tabRestored = true;
@@ -477,6 +505,7 @@ function calcTrip(){
     ${adv.length ? '<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">' + adv.map(a => `<div class="meta" style="margin-top:4px">${a}</div>`).join("") + "</div>" : ""}`;
 }
 async function saveTripDB(){
+  if (!requireOnline()) return;
   const t = tripData();
   if (!t.dest || !t.days) return alert("Need at least destination and days.");
   const e = estimate(t);
@@ -500,6 +529,7 @@ function renderChat(){
   el.scrollTop = el.scrollHeight;
 }
 async function leaveMessage(){
+  if (!requireOnline()) return;
   const v = document.getElementById("chat-input").value.trim();
   if (!v) return;
   await sb.from("messages").insert({ sender: "holden", body: v, created_by: ME });
@@ -508,6 +538,7 @@ async function leaveMessage(){
   toast("📬 Claude will see this in the next daily scan");
 }
 async function askNow(){
+  if (!requireOnline()) return;
   const v = document.getElementById("chat-input").value.trim();
   if (!v) return;
   const btn = document.getElementById("ask-btn"); btn.disabled = true; btn.textContent = "thinking…";
@@ -566,6 +597,7 @@ function renderCredits(){
   el.innerHTML = `<div class="card hero"><h3>$${left} unused this cycle</h3><div class="meta">Synced across your devices — and Claude can see it.</div></div>` + html;
 }
 async function toggleState(domain, key, val){
+  if (!requireOnline()) return;
   DB.state[domain] = DB.state[domain] || {};
   if (val) DB.state[domain][key] = true; else delete DB.state[domain][key];
   ({ credits: renderCredits, packing: renderPacking, openitems: renderStatus })[domain]();
@@ -693,6 +725,7 @@ function renderUpcoming(){
 
 // ---------- To-dos (general + custom list items) ----------
 async function addTodo(list, inputId){
+  if (!requireOnline()) return;
   const el = document.getElementById(inputId || "todo-input");
   const v = el.value.trim();
   if (!v) return;
@@ -736,6 +769,7 @@ function renderResources(){
 
 // ---------- Add event + calendar filter ----------
 async function addEvent(){
+  if (!requireOnline()) return;
   const label = document.getElementById("ev-label").value.trim();
   const date = document.getElementById("ev-start").value;
   if (!label || !date) return;
