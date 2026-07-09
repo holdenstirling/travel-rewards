@@ -212,7 +212,10 @@
 const SUPA_URL = "https://tbxhnhahisuahlpbexqj.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieGhuaGFoaXN1YWhscGJleHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NDk2MTksImV4cCI6MjA5OTEyNTYxOX0.6EDg84Nx9nXkUxO4IUjC7EY_Wq5ECoufxqL8a2ZkQEs";
 const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
-let DB = { trips: [], constraints: [], messages: [], state: {} };
+const OWNER = "holdenstirling@gmail.com";
+let DB = { trips: [], constraints: [], messages: [], state: {}, users: [] };
+let ME = null; // session email
+function nameOf(email){ if (!email) return "?"; if (email === ME) return "you"; const u = DB.users.find(u => u.email === email); return u?.name || email.split("@")[0]; }
 
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function daysUntil(d){ return Math.ceil((new Date(d) - new Date()) / 86400000); }
@@ -236,14 +239,18 @@ sb.auth.onAuthStateChange((_e, session) => { if (session && document.getElementB
 // ---------- Data ----------
 async function loadAll(){
   setSync("syncing…");
-  const [t, c, m, s, ev] = await Promise.all([
+  const { data: { session } } = await sb.auth.getSession();
+  ME = session?.user?.email || null;
+  const [t, c, m, s, ev, u] = await Promise.all([
     sb.from("trips").select("*").order("created_at"),
     sb.from("constraints").select("*").order("date_start", { nullsFirst: false }),
     sb.from("messages").select("*").order("created_at").limit(100),
     sb.from("hub_state").select("*"),
-    sb.from("events").select("*").order("date")
+    sb.from("events").select("*").order("date"),
+    sb.from("allowed_users").select("*")
   ]);
-  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || [];
+  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || [];
+  if (ME !== OWNER) { const ab = document.getElementById("ask-btn"); if (ab) { ab.disabled = true; ab.textContent = "⚡ owner only"; } }
   DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
   const b = DB.state.balances || {};
   document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
@@ -273,6 +280,7 @@ function renderTrips(){
     <div class="card"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span></h3>
     <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}</div>
     ${t.anchor ? `<div class="meta">⚓ ${esc(t.anchor)}</div>` : ""}
+    ${t.created_by && t.created_by !== OWNER ? `<div class="meta">👥 added by ${esc(nameOf(t.created_by))}</div>` : ""}
     ${t.claude_notes ? `<div class="meta" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${esc(t.claude_notes)}</div>` : ""}
     <div style="margin-top:8px"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
     <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`).join("");
@@ -344,9 +352,9 @@ async function saveTripDB(){
   const t = tripData();
   if (!t.dest || !t.days) return alert("Need at least destination and days.");
   const e = estimate(t);
-  const { error } = await sb.from("trips").insert({ ...t, est_cash: Math.round(e.allCash), est_pts: Math.round(e.flightPts/1000), status: "idea" });
+  const { error } = await sb.from("trips").insert({ ...t, est_cash: Math.round(e.allCash), est_pts: Math.round(e.flightPts/1000), status: "idea", created_by: ME });
   if (error) return alert(error.message);
-  await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out.` });
+  await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out.`, created_by: ME });
   ["dest","when","days","pax","anchor","notes"].forEach(k => document.getElementById("t-" + k).value = "");
   await loadAll();
   document.querySelector('[data-p="trips"]').click();
@@ -355,13 +363,17 @@ async function saveTripDB(){
 // ---------- Chat ----------
 function renderChat(){
   const el = document.getElementById("chat-log");
-  el.innerHTML = DB.messages.map(m => `<div class="msg ${m.sender}">${esc(m.body)}<div class="t">${m.sender === "holden" ? "you" : "claude"} · ${new Date(m.created_at).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" })}</div></div>`).join("");
+  el.innerHTML = DB.messages.map(m => {
+    const mine = m.sender !== "claude" && m.created_by === ME;
+    const who = m.sender === "claude" ? "claude" : nameOf(m.created_by);
+    return `<div class="msg ${mine ? "holden" : "claude"}">${m.sender !== "claude" && !mine ? `<b>👥 ${esc(who)}</b><br>` : ""}${esc(m.body)}<div class="t">${esc(who)} · ${new Date(m.created_at).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" })}</div></div>`;
+  }).join("");
   el.scrollTop = el.scrollHeight;
 }
 async function leaveMessage(){
   const v = document.getElementById("chat-input").value.trim();
   if (!v) return;
-  await sb.from("messages").insert({ sender: "holden", body: v });
+  await sb.from("messages").insert({ sender: "holden", body: v, created_by: ME });
   document.getElementById("chat-input").value = "";
   await loadAll(); document.querySelector('[data-p="chat"]').click();
 }
@@ -369,7 +381,7 @@ async function askNow(){
   const v = document.getElementById("chat-input").value.trim();
   if (!v) return;
   const btn = document.getElementById("ask-btn"); btn.disabled = true; btn.textContent = "thinking…";
-  await sb.from("messages").insert({ sender: "holden", body: v });
+  await sb.from("messages").insert({ sender: "holden", body: v, created_by: ME });
   document.getElementById("chat-input").value = "";
   await loadAll(); document.querySelector('[data-p="chat"]').click();
   try {
