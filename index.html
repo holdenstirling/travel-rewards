@@ -89,6 +89,14 @@
   .msg a { color: #2a4d8f; text-decoration: underline; }
   .msg.holden code { background: rgba(255,255,255,.18); }
   .msg .h { display: block; font-weight: 700; margin: 6px 0 2px; font-size: 14px; }
+  /* upcoming redesign */
+  .up-item { display: flex; gap: 12px; padding: 12px 14px; }
+  .dstack { min-width: 46px; text-align: center; flex-shrink: 0; }
+  .dnum { font-size: 21px; font-weight: 800; line-height: 1.05; }
+  .dmon { font-size: 10.5px; color: #8a8578; text-transform: uppercase; letter-spacing: .04em; }
+  .up-details { margin-top: 8px; }
+  .up-details summary { cursor: pointer; font-size: 12px; color: #8a8578; font-weight: 600; }
+  .up-details[open] { background: #faf9f6; border-radius: 8px; padding: 8px; }
   @media (max-width: 600px) {
     body { padding: 10px; padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     h1 { font-size: 19px; }
@@ -720,28 +728,51 @@ function nextResets(){
   out.push({ date: iso(new Date(n.getFullYear()+1, 0, 1)), label: "💳 Annual reset — airline fee, first-half hotel credit, Q1 credits", kind: "reset" });
   return out;
 }
+const KIND_COLOR = { trip:"#b2543a", logistics:"#a15c00", milestone:"#2a4d8f", race:"#256a37", credit:"#256a37", reset:"#256a37", deadline:"#b3261e", constraint:"#a15c00", personal:"#2a4d8f" };
 function renderUpcoming(){
   const el = document.getElementById("upcoming-list");
   const today = new Date().toISOString().slice(0,10);
   let items = [];
-  (DB.events || []).forEach(e => items.push({ date: e.date, end: e.end_date, label: e.label, kind: e.kind, notes: e.notes }));
-  (DB.trips || []).forEach(t => { if (t.date_start) items.push({ date: t.date_start, end: t.date_end, label: "✈️ " + t.dest, kind: "trip", notes: t.when_text }); });
-  (DB.constraints || []).forEach(c => { if (c.date_start) items.push({ date: c.date_start, end: c.date_end, label: "🚫 " + c.label, kind: "constraint", notes: c.notes }); });
+  (DB.events || []).forEach(e => items.push({ id: e.id, type: "event", vis: e.visibility, date: e.date, end: e.end_date, label: e.label, kind: e.kind, notes: e.notes }));
+  (DB.trips || []).forEach(t => { if (t.date_start) items.push({ id: t.id, type: "trip", date: t.date_start, end: t.date_end, label: "✈️ " + t.dest, kind: "trip", notes: t.when_text }); });
+  (DB.constraints || []).forEach(c => { if (c.date_start) items.push({ date: c.date_start, end: c.end_date || c.date_end, label: "🚫 " + c.label, kind: "constraint", notes: c.notes }); });
   items = items.concat(nextResets());
   if (calFilter !== "all") items = items.filter(i => (FILTER_KINDS[calFilter] || []).includes(i.kind));
   items = items.filter(i => (i.end || i.date) >= today).sort((a,b) => a.date.localeCompare(b.date));
-  if (!items.length) { el.innerHTML = '<div class="empty">Nothing upcoming.</div>'; return; }
+  if (!items.length) { el.innerHTML = '<div class="empty">Nothing in this view.</div>'; return; }
   let html = "", lastMonth = "";
   items.forEach(i => {
     const d = new Date(i.date + "T12:00:00");
     const month = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
     if (month !== lastMonth) { html += `<div class="group-title">${month}</div>`; lastMonth = month; }
     const du = daysUntil(d);
-    const pill = du <= 0 ? '<span class="pill soon">now</span>' : du <= 14 ? `<span class="pill soon">in ${du}d</span>` : `<span class="pill ${KIND_PILL[i.kind] || "info"}">in ${du}d</span>`;
-    const range = i.end && i.end !== i.date ? ` → ${new Date(i.end + "T12:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" })}` : "";
-    html += `<div class="card" style="padding:10px 14px"><div style="display:flex;gap:10px;align-items:baseline"><b style="min-width:52px;font-size:13px">${d.toLocaleDateString("en-US", { month:"short", day:"numeric" })}${range}</b><div style="flex:1;font-size:13.5px">${esc(i.label)} ${pill}${i.notes ? `<div class="meta">${esc(i.notes)}</div>` : ""}</div></div></div>`;
+    const pill = du <= 0 ? '<span class="pill soon">now</span>' : du <= 14 ? `<span class="pill soon">in ${du}d</span>` : `<span class="pill info">in ${du}d</span>`;
+    const color = KIND_COLOR[i.kind] || "#8a8578";
+    let extras = "";
+    if (i.id) {
+      const key = (i.type === "trip" ? "trip_" : "ev_") + i.id;
+      const tds = (DB.todos || []).filter(t => t.list === key);
+      const open = tds.filter(t => !t.done).length;
+      const share = (i.type === "event" && ME === OWNER)
+        ? `<div style="margin-top:6px"><button class="del" style="color:${i.vis === "private" ? "#a15c00" : "#256a37"}" onclick="toggleVis('${i.id}','${i.vis}')">${i.vis === "private" ? "🔒 private — tap to share with collaborators" : "👥 shared — tap to make private"}</button></div>` : "";
+      extras = `<details class="up-details"><summary>☑️ Tasks & actions${open ? ` <span class="pill warn">${open} open</span>` : ""}</summary>
+        ${tds.map(todoRow).join("") || '<div class="meta" style="padding:4px 0">Nothing yet — add prep tasks, bookings to make, things to bring.</div>'}
+        <div style="display:flex;gap:6px;margin-top:6px"><input type="text" id="evt-${i.id}" placeholder="Add a task for this" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','evt-${i.id}')"><button class="btn" style="padding:6px 10px" onclick="addTodo('${key}','evt-${i.id}')">Add</button></div>
+        ${share}</details>`;
+    }
+    const endStr = i.end && i.end !== i.date ? `<div class="meta">through ${new Date(i.end + "T12:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" })}</div>` : "";
+    html += `<div class="card up-item" style="border-left:4px solid ${color}">
+      <div class="dstack"><div class="dnum">${d.getDate()}</div><div class="dmon">${d.toLocaleDateString("en-US",{month:"short"})}</div><div class="dmon">${d.toLocaleDateString("en-US",{weekday:"short"})}</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${esc(i.label)} ${pill}${i.vis === "private" ? ' <span class="pill warn">🔒</span>' : ""}</div>
+      ${endStr}${i.notes ? `<div class="meta">${esc(i.notes)}</div>` : ""}${extras}</div></div>`;
   });
   el.innerHTML = html;
+}
+async function toggleVis(id, cur){
+  if (!requireOnline()) return;
+  await sb.from("events").update({ visibility: cur === "private" ? "shared" : "private" }).eq("id", id);
+  await loadAll();
+  toast(cur === "private" ? "👥 Now visible to collaborators" : "🔒 Now private");
 }
 
 // ---------- To-dos (general + custom list items) ----------
