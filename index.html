@@ -927,8 +927,12 @@ async function addTodo(list, inputId){
 }
 async function toggleTodo(id, done){ await sb.from("todos").update({ done }).eq("id", id); await loadAll(); }
 async function delTodo(id){ await sb.from("todos").delete().eq("id", id); await loadAll(); }
+function linkify(s){
+  return esc(s).replace(/(https?:\/\/[^\s<]+)|(\b[\w-]+\.(?:com|org|net|io|co|travel|app)\/[^\s<]*)/g,
+    m => { const href = m.startsWith("http") ? m : "https://" + m; return `<a href="${href}" target="_blank" rel="noopener">${m.length > 42 ? m.slice(0,40) + "…" : m}</a>`; });
+}
 function todoRow(t){
-  return `<div class="row"><input type="checkbox" ${t.done?"checked":""} onchange="toggleTodo('${t.id}',this.checked)"><div class="nm"><span class="${t.done?"used":""}">${esc(t.text)}</span>${t.created_by && t.created_by !== OWNER ? ` <span class="pill info">👥 ${esc(nameOf(t.created_by))}</span>` : ""}</div><button class="del" onclick="delTodo('${t.id}')">×</button></div>`;
+  return `<div class="row"><input type="checkbox" ${t.done?"checked":""} onchange="toggleTodo('${t.id}',this.checked)"><div class="nm"><span class="${t.done?"used":""}">${linkify(t.text)}</span>${t.created_by && t.created_by !== OWNER ? ` <span class="pill info">👥 ${esc(nameOf(t.created_by))}</span>` : ""}</div><button class="del" onclick="delTodo('${t.id}')">×</button></div>`;
 }
 function renderTodos(){
   const el = document.getElementById("todo-list");
