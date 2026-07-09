@@ -186,7 +186,12 @@
       <label style="font-size:11px;color:#666">Type<br><select id="ev-kind" style="width:100%;margin-top:3px"><option value="personal">Personal</option><option value="trip">Travel</option><option value="deadline">Deadline</option></select></label>
       <button class="btn" onclick="addEvent()">Add</button>
     </div>
-    <div class="meta" style="margin-top:6px">Claude's daily scan will ask whether to put new events on your Google Calendar.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+      <label style="font-size:11px;color:#666">📍 Location (optional)<br><input type="text" id="ev-loc" placeholder="e.g. Moab, UT" style="width:100%;margin-top:3px"></label>
+      <label style="font-size:11px;color:#666">🔗 Link (optional)<br><input type="text" id="ev-url" placeholder="airbnb.com/…" style="width:100%;margin-top:3px"></label>
+    </div>
+    <label style="font-size:11px;color:#666;display:block;margin-top:8px">📝 Description (optional)<br><input type="text" id="ev-notes" placeholder="details, who's coming, what to know…" style="width:100%;margin-top:3px"></label>
+    <div class="meta" style="margin-top:6px">Anyone can add — events show who added them. Claude's daily scan will ask Holden whether to mirror new events to Google Calendar.</div>
   </div>
   <div id="upcoming-list"><div class="empty">Loading…</div></div>
 </div>
@@ -753,7 +758,7 @@ function renderUpcoming(){
   const el = document.getElementById("upcoming-list");
   const today = new Date().toISOString().slice(0,10);
   let items = [];
-  (DB.events || []).forEach(e => items.push({ id: e.id, type: "event", vis: e.visibility, date: e.date, end: e.end_date, label: e.label, kind: e.kind, notes: e.notes }));
+  (DB.events || []).forEach(e => items.push({ id: e.id, type: "event", vis: e.visibility, date: e.date, end: e.end_date, label: e.label, kind: e.kind, notes: e.notes, loc: e.location, url: e.url, by: e.created_by }));
   (DB.trips || []).forEach(t => { if (t.date_start) items.push({ id: t.id, type: "trip", date: t.date_start, end: t.date_end, label: "✈️ " + t.dest, kind: "trip", notes: t.when_text }); });
   (DB.constraints || []).forEach(c => { if (c.date_start) items.push({ date: c.date_start, end: c.end_date || c.date_end, label: "🚫 " + c.label, kind: "constraint", notes: c.notes }); });
   items = items.concat(nextResets());
@@ -772,7 +777,11 @@ function renderUpcoming(){
     const color = KIND_COLOR[i.kind] || "#8a8578";
     const range = i.end && i.end !== i.date ? ` → ${new Date(i.end + "T12:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" })}` : "";
     // expandable body: notes for everything; tasks + sharing for DB items
-    let body = i.notes ? `<div class="meta" style="margin-top:6px">${esc(i.notes)}</div>` : "";
+    let body = "";
+    if (i.by && i.by !== OWNER) body += `<div class="meta" style="margin-top:6px">👥 added by ${esc(nameOf(i.by))}</div>`;
+    if (i.loc) body += `<div class="meta" style="margin-top:6px">📍 <a href="https://maps.google.com/?q=${encodeURIComponent(i.loc)}" target="_blank" rel="noopener">${esc(i.loc)}</a></div>`;
+    if (i.url) body += `<div class="meta" style="margin-top:6px">🔗 <a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.url.replace(/^https?:\/\//,"").slice(0,50))}</a></div>`;
+    if (i.notes) body += `<div class="meta" style="margin-top:6px">${esc(i.notes)}</div>`;
     let taskBadge = "";
     if (i.id) {
       const key = (i.type === "trip" ? "trip_" : "ev_") + i.id;
@@ -851,10 +860,21 @@ async function addEvent(){
   if (!requireOnline()) return;
   const label = document.getElementById("ev-label").value.trim();
   const date = document.getElementById("ev-start").value;
-  if (!label || !date) return;
-  await sb.from("events").insert({ label, date, end_date: document.getElementById("ev-end").value || null, kind: document.getElementById("ev-kind").value, created_by: ME, calendar: "ask" });
-  ["ev-label","ev-start","ev-end"].forEach(i => document.getElementById(i).value = "");
+  if (!label || !date) return toast("Need at least a name and a date");
+  let url = document.getElementById("ev-url").value.trim();
+  if (url && !/^https?:\/\//.test(url)) url = "https://" + url;
+  await sb.from("events").insert({
+    label, date,
+    end_date: document.getElementById("ev-end").value || null,
+    kind: document.getElementById("ev-kind").value,
+    notes: document.getElementById("ev-notes").value.trim() || null,
+    location: document.getElementById("ev-loc").value.trim() || null,
+    url: url || null,
+    created_by: ME, calendar: "ask"
+  });
+  ["ev-label","ev-start","ev-end","ev-loc","ev-url","ev-notes"].forEach(i => document.getElementById(i).value = "");
   await loadAll();
+  toast("Event added 📅");
 }
 let calFilter = "all";
 const FILTER_KINDS = {
