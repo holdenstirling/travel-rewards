@@ -231,8 +231,26 @@ async function sendLink(){
 async function boot(){
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { document.getElementById("login").style.display = "block"; return; }
+  // membership gate: non-members see request-access instead of the app
+  const { data: me } = await sb.from("allowed_users").select("email").eq("email", session.user.email);
+  if (!me || !me.length) { showRequestAccess(session.user.email); return; }
   document.getElementById("app").style.display = "block";
   await loadAll();
+}
+async function showRequestAccess(email){
+  const { data: req } = await sb.from("access_requests").select("status").eq("email", email);
+  const existing = req && req[0];
+  document.getElementById("login").style.display = "block";
+  document.getElementById("login").innerHTML = existing
+    ? `<div class="card"><h3>✈️ Hub access ${existing.status === "pending" ? "requested" : existing.status}</h3><div class="meta" style="margin-top:8px">${existing.status === "pending" ? "Holden gets notified in his next daily scan — check back after he approves." : "Ask Holden directly if you think this is a mistake."}</div></div>`
+    : `<div class="card"><h3>✈️ This is Holden's travel hub</h3><div class="meta" style="margin:8px 0 12px">You're signed in as ${esc(email)}, but not a member yet. Request access and Holden will approve you.</div>
+       <input type="text" id="req-name" placeholder="Your name" style="width:100%;margin-bottom:8px">
+       <button class="btn" style="width:100%" onclick="requestAccess('${esc(email)}')">Request access</button></div>`;
+}
+async function requestAccess(email){
+  const name = document.getElementById("req-name").value.trim() || email.split("@")[0];
+  await sb.from("access_requests").insert({ email, name });
+  showRequestAccess(email);
 }
 sb.auth.onAuthStateChange((_e, session) => { if (session && document.getElementById("app").style.display === "none") { document.getElementById("login").style.display = "none"; document.getElementById("app").style.display = "block"; loadAll(); } });
 
