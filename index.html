@@ -585,7 +585,7 @@ async function setStatus(id, status){ await sb.from("trips").update({ status, up
 async function delTrip(id){ if (confirm("Remove this trip?")) { await sb.from("trips").delete().eq("id", id); loadAll(); } }
 
 // ---------- Add Trip (estimator) ----------
-const REGION_FLIGHTS = { domestic:[300,25,800,50,"UR portal or United"], mexico:[450,35,1400,70,"United or UR→Aeroplan"], europe:[900,60,3500,110,"MR/UR→Flying Blue or Virgin; Iberia off-peak"], asia:[1100,70,4200,85,"MR→ANA (75–85k RT biz)"], southam:[800,60,2800,126,"MR→LifeMiles (63k/leg, no surcharges)"], oceania:[1400,80,5500,160,"MR/UR→Aeroplan"], africa:[1200,80,4500,140,"MR→Aeroplan or Flying Blue"] };
+const REGION_FLIGHTS = { domestic:[300,25,800,50,"UR portal or United",["UR","United"]], mexico:[450,35,1400,70,"United or UR→Aeroplan",["United","UR"]], europe:[900,60,3500,110,"MR/UR→Flying Blue or Virgin; Iberia off-peak",["MR","UR"]], asia:[1100,70,4200,85,"MR→ANA (75–85k RT biz)",["MR"]], southam:[800,60,2800,126,"MR→LifeMiles (63k/leg, no surcharges)",["MR"]], oceania:[1400,80,5500,160,"MR/UR→Aeroplan",["MR","UR"]], africa:[1200,80,4500,140,"MR→Aeroplan or Flying Blue",["MR"]] };
 const STYLE_RATES = { budget:[45,30,20], mid:[140,70,60], comfort:[300,150,120] };
 const SUGGESTIONS = [
   { dest:"Japan Alps + Tokyo", region:"asia", days:"12", cabin:"biz", style:"mid", anchor:"Kamikochi hut season May–Oct", why:"THE MR redemption: ANA RT biz 75–85k. Trekking + city, work-week compatible." },
@@ -619,8 +619,40 @@ function estimate(t){
   const rooms = Math.ceil(t.pax/2);
   const lodging = s[0] * rooms * t.days, food = s[1] * t.pax * t.days, act = s[2] * t.pax * t.days;
   const ground = lodging + food + act;
-  return { flightCash, flightPts, ground, allCash: flightCash + ground, path: f[4],
+  return { flightCash, flightPts, ground, allCash: flightCash + ground, path: f[4], progs: f[5],
     rooms, lodging, food, act, perFlight: (t.cabin === "biz" ? f[2] : f[0]), perPts: (t.cabin === "biz" ? f[3] : f[1]), rates: s };
+}
+function payOptions(t, e){
+  const b = DB.state.balances || {};
+  const effCash = e.flightCash * 0.9; // paying cash on Platinum earns 5x MR ≈ 10% back
+  const cpp = effCash / e.flightPts * 100;
+  const vcolor = cpp >= 2 ? "#b2543a" : cpp >= 1.5 ? "#a15c00" : "#256a37";
+  const vlabel = cpp >= 2 ? "🎯 points win" : cpp >= 1.5 ? "🤔 borderline" : "💵 cash wins";
+  const mrEarn = Math.round(e.flightCash * 5 / 1000);
+  // which balances can fund the award
+  const funding = (e.progs || []).map(p => {
+    const bal = b[p] || 0;
+    return bal >= e.flightPts
+      ? `${p} covers it (${Math.round(bal/1000)}k → ${Math.round((bal - e.flightPts)/1000)}k left)`
+      : `${p} short (${Math.round(bal/1000)}k of ${Math.round(e.flightPts/1000)}k)`;
+  });
+  const funded = (e.progs || []).some(p => (b[p] || 0) >= e.flightPts);
+  // UR portal floor option
+  const portalPts = Math.round(e.flightCash / 0.0125);
+  const portalOK = (b.UR || 0) >= portalPts;
+  let rec;
+  if (cpp >= 2 && funded) rec = `<b>Use points for flights</b> — ${cpp.toFixed(2)}¢/pt via ${esc(e.path)} beats your 2¢ bar. Pay ground with CSP.`;
+  else if (cpp >= 2 && !funded) rec = `<b>Points would win</b> (${cpp.toFixed(2)}¢/pt) but no single balance covers it — combine (FU→CSP, or MR+UR→Aeroplan) or trim to fewer pax/economy.`;
+  else if (cpp >= 1.5) rec = `<b>Borderline</b> (${cpp.toFixed(2)}¢/pt) — points if it's business class you'd never pay cash for; cash if economy.`;
+  else rec = `<b>Pay cash on Platinum</b> — ${cpp.toFixed(2)}¢/pt is under your 1.5¢ floor; keep the points for a better redemption.`;
+  return `<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">
+    <div class="group-title" style="margin:0 0 6px">💱 Ways to pay for flights</div>
+    <div class="meta"><b>A · All cash:</b> $${Math.round(e.flightCash).toLocaleString()} on Platinum → earns ~${mrEarn}k MR back (5x)</div>
+    <div class="meta" style="margin-top:4px"><b>B · Transfer partners:</b> ${Math.round(e.flightPts/1000)}k via ${esc(e.path)} <span class="pill" style="background:${vcolor};color:#fff">${cpp.toFixed(2)}¢/pt · ${vlabel}</span>${ME === OWNER && funding.length ? `<br><span style="font-size:12px">${funding.join(" · ")}</span>` : ""}</div>
+    <div class="meta" style="margin-top:4px"><b>C · UR portal (no award hunting):</b> ${Math.round(portalPts/1000)}k UR at a guaranteed 1.25¢${ME === OWNER ? (portalOK ? " — covered" : " — exceeds UR balance") : ""}</div>
+    <div class="meta" style="margin-top:8px;border-left:3px solid ${vcolor};padding-left:10px">👉 ${rec}</div>
+    <div class="meta" style="margin-top:4px;font-size:12px">Math: ($${Math.round(e.flightCash).toLocaleString()} × 0.9 Platinum-earn offset) ÷ ${Math.round(e.flightPts/1000)}k pts = ${cpp.toFixed(2)}¢/pt · bars: 1.25¢ portal floor / 1.5¢ keep-points line / 2¢+ transfer territory. Real award pricing varies — saving the trip gets live research.</div>
+  </div>`;
 }
 function conflictsWith(t){
   if (!t.date_start || !t.date_end) return null;
@@ -645,6 +677,7 @@ function calcTrip(){
     <div class="meta" style="margin-top:6px">Flights: $${Math.round(e.flightCash).toLocaleString()} or ~${Math.round(e.flightPts/1000)}k via ${e.path}</div>
     <div class="meta">Ground (${t.days}d, ${t.style}): ~$${Math.round(e.ground).toLocaleString()}</div>
     <div class="meta" style="margin-top:6px">${e.flightPts <= total ? "✅ Points cover flights." : "⚠️ Award exceeds combined balances."} ±30% ballpark.</div>
+    ${payOptions(t, e)}
     <details style="margin-top:10px"><summary class="meta" style="cursor:pointer;font-weight:600">🧮 How this was calculated</summary>
       <div class="meta" style="margin-top:8px"><b>Flights</b> — $${e.perFlight.toLocaleString()} × ${t.pax} pax = $${e.flightCash.toLocaleString()}. Benchmark round-trip from DEN for <b>${t.region}</b> in <b>${t.cabin === "biz" ? "business" : "economy"}</b>: typical 2025–26 cash medians. Points: ${e.perPts}k × ${t.pax} = ${Math.round(e.flightPts/1000)}k, from published award charts via <b>${e.path}</b>.</div>
       <div class="meta" style="margin-top:6px"><b>Lodging</b> — $${e.rates[0]}/night (${t.style} tier) × ${e.rooms} room${e.rooms>1?"s":""} × ${t.days} nights = $${e.lodging.toLocaleString()}</div>
