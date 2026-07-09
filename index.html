@@ -80,6 +80,7 @@
   <button class="tab" data-p="credits">Credits</button>
   <button class="tab" data-p="calc">Points vs Cash</button>
   <button class="tab" data-p="packing">Packing</button>
+  <button class="tab" data-p="todo">✅ To-Do</button>
   <button class="tab" data-p="status">Status</button>
   <button class="tab" data-p="playbook">Playbook</button>
 </div>
@@ -87,8 +88,30 @@
 <div id="trips" class="panel active"><div class="empty">Loading…</div></div>
 
 <div id="upcoming" class="panel">
-  <div class="card"><div class="meta">Everything the travel system knows is coming: trips, deadlines, logistics, milestones, constraints, and computed credit resets. (Your full Google Calendar isn't mirrored here — this is the travel layer.)</div></div>
+  <div class="tabs" style="position:static;padding:0">
+    <button class="tab cal-filter active" data-f="all">All</button>
+    <button class="tab cal-filter" data-f="travel">✈️ Travel</button>
+    <button class="tab cal-filter" data-f="money">💳 Money</button>
+    <button class="tab cal-filter" data-f="personal">🏠 Personal</button>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:end">
+      <label style="font-size:11px;color:#666">Add an event<br><input type="text" id="ev-label" placeholder="e.g. Dad visiting" style="width:100%;margin-top:3px"></label>
+      <label style="font-size:11px;color:#666">Date<br><input type="date" id="ev-start" style="width:100%;margin-top:3px"></label>
+      <label style="font-size:11px;color:#666">End (opt.)<br><input type="date" id="ev-end" style="width:100%;margin-top:3px"></label>
+      <label style="font-size:11px;color:#666">Type<br><select id="ev-kind" style="width:100%;margin-top:3px"><option value="personal">Personal</option><option value="trip">Travel</option><option value="deadline">Deadline</option></select></label>
+      <button class="btn" onclick="addEvent()">Add</button>
+    </div>
+    <div class="meta" style="margin-top:6px">Claude's daily scan will ask whether to put new events on your Google Calendar.</div>
+  </div>
   <div id="upcoming-list"><div class="empty">Loading…</div></div>
+</div>
+
+<div id="todo" class="panel">
+  <div class="card">
+    <div style="display:flex;gap:8px"><input type="text" id="todo-input" placeholder="Add a to-do (travel or otherwise)" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('general')"><button class="btn" onclick="addTodo('general')">Add</button></div>
+  </div>
+  <div id="todo-list"></div>
 </div>
 
 <div id="addtrip" class="panel">
@@ -153,6 +176,7 @@
     <button class="tab sub-tab active" data-trip="eu">🇫🇷 Europe</button>
     <button class="tab sub-tab" data-trip="pat">🏔️ Patagonia</button>
   </div>
+  <div class="card"><div style="display:flex;gap:8px"><input type="text" id="pack-add" placeholder="Add your own packing item" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('packing_'+curTrip,'pack-add')"><button class="btn" onclick="addTodo('packing_'+curTrip,'pack-add')">Add</button></div></div>
   <div id="pack-list"></div>
 </div>
 
@@ -203,6 +227,14 @@
   <div class="card" style="font-size:13.5px;line-height:1.6">
     1. Never transfer speculatively. 2. Check transfer bonuses first. 3. Pool FU → CSP. 4. Prime Visa ≠ UR. 5. Aeroplan takes MR + UR. 6. Rentals → CSP, decline CDW. 7. Flights → Platinum. 8. Cards ≠ mountain rescue insurance (ÖAV).
   </div>
+  <div class="group-title">🔗 Resources</div>
+  <div class="card"><div style="display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;align-items:end">
+    <label style="font-size:11px;color:#666">Label<br><input type="text" id="res-label" style="width:100%;margin-top:3px"></label>
+    <label style="font-size:11px;color:#666">URL<br><input type="text" id="res-url" placeholder="https://…" style="width:100%;margin-top:3px"></label>
+    <label style="font-size:11px;color:#666">Category<br><input type="text" id="res-cat" placeholder="e.g. Japan" style="width:100%;margin-top:3px"></label>
+    <button class="btn" onclick="addResource()">Add</button>
+  </div></div>
+  <div id="res-list"></div>
 </div>
 
 <div class="note">Dynamic Hub — data syncs across devices via Supabase and is shared with Claude. <span class="sync" id="sync-status"></span> <button class="del" onclick="sb.auth.signOut().then(()=>location.reload())">sign out</button></div>
@@ -259,22 +291,24 @@ async function loadAll(){
   setSync("syncing…");
   const { data: { session } } = await sb.auth.getSession();
   ME = session?.user?.email || null;
-  const [t, c, m, s, ev, u] = await Promise.all([
+  const [t, c, m, s, ev, u, td, rs] = await Promise.all([
     sb.from("trips").select("*").order("created_at"),
     sb.from("constraints").select("*").order("date_start", { nullsFirst: false }),
     sb.from("messages").select("*").order("created_at").limit(100),
     sb.from("hub_state").select("*"),
     sb.from("events").select("*").order("date"),
-    sb.from("allowed_users").select("*")
+    sb.from("allowed_users").select("*"),
+    sb.from("todos").select("*").order("created_at"),
+    sb.from("resources").select("*").order("category")
   ]);
-  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || [];
+  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || []; DB.todos = td.data || []; DB.resources = rs.data || [];
   if (ME !== OWNER) { const ab = document.getElementById("ask-btn"); if (ab) { ab.disabled = true; ab.textContent = "⚡ owner only"; } }
   DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
   const b = DB.state.balances || {};
   document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
   const cur = document.getElementById("c-cur");
   cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
-  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming();
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
 async function saveState(key){
@@ -509,6 +543,9 @@ function renderPacking(){
     });
     html += "</div>";
   });
+  const extras = (DB.todos || []).filter(t => t.list === "packing_" + curTrip);
+  extras.forEach(t => { total++; if (t.done) done++; });
+  if (extras.length) html += `<div class="group-title">Your added items</div><div class="card">` + extras.map(todoRow).join("") + "</div>";
   const pct = total ? Math.round(done/total*100) : 0;
   el.innerHTML = `<div class="card hero"><h3>${done}/${total} packed (${pct}%)</h3><div class="bar" style="background:#444"><div style="width:${pct}%"></div></div></div>` + html;
 }
@@ -560,6 +597,7 @@ function renderUpcoming(){
   (DB.trips || []).forEach(t => { if (t.date_start) items.push({ date: t.date_start, end: t.date_end, label: "✈️ " + t.dest, kind: "trip", notes: t.when_text }); });
   (DB.constraints || []).forEach(c => { if (c.date_start) items.push({ date: c.date_start, end: c.date_end, label: "🚫 " + c.label, kind: "constraint", notes: c.notes }); });
   items = items.concat(nextResets());
+  if (calFilter !== "all") items = items.filter(i => (FILTER_KINDS[calFilter] || []).includes(i.kind));
   items = items.filter(i => (i.end || i.date) >= today).sort((a,b) => a.date.localeCompare(b.date));
   if (!items.length) { el.innerHTML = '<div class="empty">Nothing upcoming.</div>'; return; }
   let html = "", lastMonth = "";
@@ -574,6 +612,69 @@ function renderUpcoming(){
   });
   el.innerHTML = html;
 }
+
+// ---------- To-dos (general + custom list items) ----------
+async function addTodo(list, inputId){
+  const el = document.getElementById(inputId || "todo-input");
+  const v = el.value.trim();
+  if (!v) return;
+  await sb.from("todos").insert({ text: v, list, created_by: ME });
+  el.value = "";
+  await loadAll();
+}
+async function toggleTodo(id, done){ await sb.from("todos").update({ done }).eq("id", id); await loadAll(); }
+async function delTodo(id){ await sb.from("todos").delete().eq("id", id); await loadAll(); }
+function todoRow(t){
+  return `<div class="row"><input type="checkbox" ${t.done?"checked":""} onchange="toggleTodo('${t.id}',this.checked)"><div class="nm"><span class="${t.done?"used":""}">${esc(t.text)}</span>${t.created_by && t.created_by !== OWNER ? ` <span class="pill info">👥 ${esc(nameOf(t.created_by))}</span>` : ""}</div><button class="del" onclick="delTodo('${t.id}')">×</button></div>`;
+}
+function renderTodos(){
+  const el = document.getElementById("todo-list");
+  const general = (DB.todos || []).filter(t => t.list === "general");
+  const open = general.filter(t => !t.done).length;
+  el.innerHTML = general.length
+    ? `<div class="group-title">To-dos <span class="pill ${open?"warn":"ok"}">${open} open</span></div><div class="card">` + general.map(todoRow).join("") + "</div>"
+    : '<div class="empty">Nothing yet — add anything: errands, calls, trip prep.</div>';
+}
+
+// ---------- Resources ----------
+async function addResource(){
+  const label = document.getElementById("res-label").value.trim();
+  let url = document.getElementById("res-url").value.trim();
+  if (!label || !url) return;
+  if (!/^https?:\/\//.test(url)) url = "https://" + url;
+  await sb.from("resources").insert({ label, url, category: document.getElementById("res-cat").value.trim() || "general", created_by: ME });
+  ["res-label","res-url","res-cat"].forEach(i => document.getElementById(i).value = "");
+  await loadAll();
+}
+async function delResource(id){ await sb.from("resources").delete().eq("id", id); await loadAll(); }
+function renderResources(){
+  const el = document.getElementById("res-list");
+  const cats = {};
+  (DB.resources || []).forEach(r => { (cats[r.category] = cats[r.category] || []).push(r); });
+  el.innerHTML = Object.keys(cats).sort().map(c =>
+    `<div class="group-title">${esc(c)}</div><div class="card">` + cats[c].map(r =>
+      `<div class="row"><div class="nm">🔗 <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.label)}</a></div><button class="del" onclick="delResource('${r.id}')">×</button></div>`).join("") + "</div>").join("") || '<div class="empty">No links yet.</div>';
+}
+
+// ---------- Add event + calendar filter ----------
+async function addEvent(){
+  const label = document.getElementById("ev-label").value.trim();
+  const date = document.getElementById("ev-start").value;
+  if (!label || !date) return;
+  await sb.from("events").insert({ label, date, end_date: document.getElementById("ev-end").value || null, kind: document.getElementById("ev-kind").value, created_by: ME, calendar: "ask" });
+  ["ev-label","ev-start","ev-end"].forEach(i => document.getElementById(i).value = "");
+  await loadAll();
+}
+let calFilter = "all";
+const FILTER_KINDS = {
+  travel: ["trip","logistics","milestone"],
+  money: ["credit","deadline","reset"],
+  personal: ["personal","constraint","race"]
+};
+document.querySelectorAll(".cal-filter").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".cal-filter").forEach(x => x.classList.remove("active"));
+  b.classList.add("active"); calFilter = b.dataset.f; renderUpcoming();
+}));
 
 // ---------- Tabs & boot ----------
 document.querySelectorAll(".tab:not(.sub-tab)").forEach(t => t.addEventListener("click", () => {
