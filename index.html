@@ -54,6 +54,33 @@
   .st-idea { background: #eee; color: #555; } .st-researching { background: #e9eef8; color: #2a4d8f; }
   .st-dated { background: #fff3e0; color: #a15c00; } .st-booking { background: #fdecea; color: #b3261e; } .st-booked { background: #e8f2ea; color: #256a37; }
   .sync { font-size: 11px; color: #8a8578; }
+  /* ---- UI polish pass ---- */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; box-shadow: 0 6px 8px -8px rgba(0,0,0,.18); }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { white-space: nowrap; flex-shrink: 0; transition: background .12s, color .12s, border-color .12s; }
+  .tab:hover:not(.active) { background: #f0efeb; }
+  .card { box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: box-shadow .15s; }
+  .card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+  .btn { transition: filter .12s, transform .06s; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: scale(.97); }
+  input:focus, textarea:focus, select:focus { outline: 2px solid rgba(178,84,58,.25); border-color: #b2543a; }
+  .empty { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  .msg { box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  #hub-toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .25s; z-index: 99; pointer-events: none; max-width: 86vw; }
+  #hub-toast.show { opacity: 1; }
+  .tab .dot { display: inline-block; width: 7px; height: 7px; background: #b3261e; border-radius: 50%; margin-left: 5px; vertical-align: middle; }
+  .icon-btn { border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 14px; }
+  .icon-btn:hover { background: #f0efeb; }
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    h1 { font-size: 19px; }
+    .card { padding: 12px 13px; }
+    .msg { max-width: 92%; }
+    table { font-size: 12px; }
+    th, td { padding: 7px 8px; }
+  }
 </style>
 </head>
 <body>
@@ -69,7 +96,10 @@
 </div>
 
 <div id="app" style="display:none">
-<h1>✈️ Trips / Travel / Rewards Hub</h1>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+  <h1>✈️ Trips / Travel / Rewards Hub</h1>
+  <button class="icon-btn" title="Refresh" onclick="loadAll().then(()=>toast('Refreshed ✓'))">↻</button>
+</div>
 <div class="sub" id="header-sub">Amex Platinum · Sapphire Preferred · Freedom Unlimited · Prime Visa · Blue Cash Preferred · DEN</div>
 
 <div class="tabs">
@@ -316,11 +346,34 @@ async function loadAll(){
   const cur = document.getElementById("c-cur");
   cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
   renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources();
+  updateChatBadge(); maybeRestoreTab();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
 async function saveState(key){
   await sb.from("hub_state").upsert({ key, value: DB.state[key] || {}, updated_at: new Date().toISOString() });
-  setSync("saved ✓");
+  setSync("saved ✓"); toast("Saved ✓");
+}
+function toast(msg){
+  let t = document.getElementById("hub-toast");
+  if (!t) { t = document.createElement("div"); t.id = "hub-toast"; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+let tabRestored = false;
+function maybeRestoreTab(){
+  if (tabRestored) return; tabRestored = true;
+  const s = localStorage.getItem("hubtab");
+  if (s && s !== "trips") { const el = document.querySelector(`.tab[data-p="${s}"]`); if (el) el.click(); }
+}
+function updateChatBadge(){
+  const tab = document.querySelector('.tab[data-p="chat"]');
+  if (!tab) return;
+  const last = [...DB.messages].reverse().find(m => m.sender === "claude");
+  const seen = +(localStorage.getItem("chatSeen") || 0);
+  const has = last && new Date(last.created_at).getTime() > seen && !tab.classList.contains("active");
+  let dot = tab.querySelector(".dot");
+  if (has && !dot) { dot = document.createElement("span"); dot.className = "dot"; tab.appendChild(dot); }
+  if (!has && dot) dot.remove();
 }
 
 // ---------- Trips ----------
@@ -416,6 +469,7 @@ async function saveTripDB(){
   await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out.`, created_by: ME });
   ["dest","when","days","pax","anchor","notes"].forEach(k => document.getElementById("t-" + k).value = "");
   await loadAll();
+  toast("Trip saved — Claude will research it 🔍");
   document.querySelector('[data-p="trips"]').click();
 }
 
@@ -435,6 +489,7 @@ async function leaveMessage(){
   await sb.from("messages").insert({ sender: "holden", body: v, created_by: ME });
   document.getElementById("chat-input").value = "";
   await loadAll(); document.querySelector('[data-p="chat"]').click();
+  toast("📬 Claude will see this in the next daily scan");
 }
 async function askNow(){
   const v = document.getElementById("chat-input").value.trim();
@@ -684,11 +739,13 @@ document.querySelectorAll(".cal-filter").forEach(b => b.addEventListener("click"
 }));
 
 // ---------- Tabs & boot ----------
-document.querySelectorAll(".tab:not(.sub-tab)").forEach(t => t.addEventListener("click", () => {
-  document.querySelectorAll(".tab:not(.sub-tab)").forEach(x => x.classList.remove("active"));
+document.querySelectorAll(".tab[data-p]").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab[data-p]").forEach(x => x.classList.remove("active"));
   document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
   t.classList.add("active");
   document.getElementById(t.dataset.p).classList.add("active");
+  localStorage.setItem("hubtab", t.dataset.p);
+  if (t.dataset.p === "chat") { localStorage.setItem("chatSeen", Date.now()); const d = t.querySelector(".dot"); if (d) d.remove(); }
 }));
 document.querySelectorAll(".sub-tab").forEach(t => t.addEventListener("click", () => {
   document.querySelectorAll(".sub-tab").forEach(x => x.classList.remove("active"));
