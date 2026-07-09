@@ -304,6 +304,12 @@ async function loadAll(){
   ]);
   DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || []; DB.todos = td.data || []; DB.resources = rs.data || [];
   if (ME !== OWNER) { const ab = document.getElementById("ask-btn"); if (ab) { ab.disabled = true; ab.textContent = "⚡ owner only"; } }
+  // first sign-in: ask new members for a display name
+  const meRow = DB.users.find(x => x.email === ME);
+  if (meRow && !meRow.name) {
+    const n = (window.prompt("Welcome to the Hub! What name should show on your contributions?") || "").trim();
+    if (n) { await sb.from("allowed_users").update({ name: n }).eq("email", ME); meRow.name = n; }
+  }
   DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
   const b = DB.state.balances || {};
   document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
