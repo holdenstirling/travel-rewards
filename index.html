@@ -258,6 +258,7 @@
     <label style="font-size:13px;display:block;margin-top:12px"><input type="checkbox" id="c-plat" checked onchange="calcVerdict()"> Flight paid on Platinum (5x ≈ 10% back)</label>
   </div>
   <div class="card" id="c-result"><div class="meta">Enter prices for a verdict.</div></div>
+  <div id="redeem-section"></div>
 </div>
 
 <div id="packing" class="panel">
@@ -388,7 +389,7 @@ async function loadAll(){
   setSync("syncing…");
   const { data: { session } } = await sb.auth.getSession();
   ME = session?.user?.email || null;
-  const [t, c, m, s, ev, u, td, rs] = await Promise.all([
+  const [t, c, m, s, ev, u, td, rs, rd] = await Promise.all([
     sb.from("trips").select("*").order("created_at"),
     sb.from("constraints").select("*").order("date_start", { nullsFirst: false }),
     sb.from("messages").select("*").order("created_at").limit(100),
@@ -396,10 +397,11 @@ async function loadAll(){
     sb.from("events").select("*").order("date"),
     sb.from("allowed_users").select("*"),
     sb.from("todos").select("*").order("created_at"),
-    sb.from("resources").select("*").order("category")
+    sb.from("resources").select("*").order("category"),
+    sb.from("redemptions").select("*").order("date", { ascending: false })
   ]);
   if (t.error && c.error && m.error) { restoreOffline(); return; } // network down mid-session
-  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || []; DB.todos = td.data || []; DB.resources = rs.data || [];
+  DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || []; DB.todos = td.data || []; DB.resources = rs.data || []; DB.redemptions = rd.data || [];
   document.body.classList.remove("offline");
   localStorage.setItem("hubcache", JSON.stringify(DB));
   if (ME !== OWNER) { const ab = document.getElementById("ask-btn"); if (ab) { ab.disabled = true; ab.textContent = "⚡ owner only"; } }
@@ -414,7 +416,7 @@ async function loadAll(){
   document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
   const cur = document.getElementById("c-cur");
   cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
-  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources();
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions();
   updateChatBadge(); maybeRestoreTab();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
@@ -675,6 +677,72 @@ function calcVerdict(){
   else { v = "🎯 USE POINTS"; c = "#b2543a"; why = `${cpp.toFixed(2)}¢/pt — well above the 2¢ bar.${cpp > 4 ? " Exceptional." : ""}`; }
   el.innerHTML = `<h3 style="color:${c}">${v} <span class="pill info">${cpp.toFixed(2)}¢/pt</span></h3><div class="meta" style="margin-top:6px">${why}</div>
     <div class="meta" style="margin-top:6px">${pts > bal ? "⚠️ Exceeds this balance — combine via Aeroplan or pay cash." : `Uses ${pct}% of this balance.`}</div>`;
+}
+
+// ---------- Redemptions ledger (owner) ----------
+function renderRedemptions(){
+  const el = document.getElementById("redeem-section");
+  if (!el) return;
+  if (ME !== OWNER) { el.innerHTML = ""; return; }
+  const reds = DB.redemptions || [];
+  const withVal = reds.filter(r => r.cash_value && r.points);
+  const totPts = withVal.reduce((s,r) => s + r.points, 0);
+  const totVal = withVal.reduce((s,r) => s + r.cash_value, 0);
+  const avg = totPts ? (totVal / totPts * 100) : 0;
+  el.innerHTML = `
+  <div class="group-title">📒 Log what you actually book</div>
+  <div class="card">
+    <div class="meta" style="margin-bottom:10px">Logging a redemption auto-deducts the points from your balances and grades the value you got.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <input type="text" id="r-label" placeholder="What: ANA biz DEN↔Tokyo RT" style="grid-column:1/-1">
+      <select id="r-program"><option value="MR">Amex MR</option><option value="UR">Chase UR</option><option value="United">United</option></select>
+      <input type="text" id="r-partner" placeholder="Partner: ANA, Hyatt, LifeMiles…">
+      <input type="text" id="r-points" placeholder="Points used (e.g. 85000 or 85k)">
+      <input type="text" id="r-value" placeholder="Cash value $ (optional)">
+      <input type="date" id="r-date" value="${new Date().toISOString().slice(0,10)}">
+      <input type="text" id="r-trip" placeholder="Trip (optional): Patagonia">
+    </div>
+    <button class="btn" style="margin-top:8px" onclick="logRedemption()">Log redemption (deducts points)</button>
+  </div>
+  ${reds.length ? `<div class="group-title">History ${withVal.length ? `<span class="pill ${avg >= 2 ? "ok" : avg >= 1.5 ? "warn" : "soon"}">lifetime avg ${avg.toFixed(2)}¢/pt</span>` : ""}</div>
+  <div class="card">` + reds.map(r => {
+    const cpp = r.cash_value && r.points ? (r.cash_value / r.points * 100) : null;
+    return `<div class="row"><div class="nm"><b>${esc(r.label)}</b> <span class="pill info">${esc(r.program)}${r.partner ? " → " + esc(r.partner) : ""}</span>${cpp ? ` <span class="pill ${cpp >= 2 ? "ok" : cpp >= 1.5 ? "warn" : "soon"}">${cpp.toFixed(2)}¢/pt</span>` : ""}<br><span style="color:#666;font-size:12px">${r.date} · ${r.points.toLocaleString()} pts${r.cash_value ? " · $" + r.cash_value.toLocaleString() + " value" : ""}${r.trip ? " · " + esc(r.trip) : ""}</span></div>
+    <button class="del" onclick="delRedemption('${r.id}', '${r.program}', ${r.points})">×</button></div>`;
+  }).join("") + "</div>" : ""}`;
+}
+async function logRedemption(){
+  if (!requireOnline()) return;
+  const label = document.getElementById("r-label").value.trim();
+  const raw = document.getElementById("r-points").value.trim().replace(/[$,]/g,"");
+  const points = Math.round((parseFloat(raw) || 0) * (/k\s*$/i.test(raw) ? 1000 : 1));
+  if (!label || !points) return toast("Need a description and points used");
+  const program = document.getElementById("r-program").value;
+  const b = DB.state.balances || {};
+  if ((b[program] || 0) < points && !confirm(`That's more than your recorded ${program} balance (${(b[program]||0).toLocaleString()}). Log anyway?`)) return;
+  await sb.from("redemptions").insert({
+    label, program, points,
+    partner: document.getElementById("r-partner").value.trim() || null,
+    cash_value: Math.round(parseFloat(document.getElementById("r-value").value.replace(/[$,]/g,"")) || 0) || null,
+    date: document.getElementById("r-date").value || new Date().toISOString().slice(0,10),
+    trip: document.getElementById("r-trip").value.trim() || null
+  });
+  b[program] = Math.max(0, (b[program] || 0) - points);
+  b.updated = new Date().toISOString().slice(0,10);
+  DB.state.balances = b;
+  await sb.from("hub_state").upsert({ key: "balances", value: b, updated_at: new Date().toISOString() });
+  await loadAll();
+  toast(`Logged — ${program} balance now ${b[program].toLocaleString()}`);
+}
+async function delRedemption(id, program, points){
+  if (!requireOnline()) return;
+  if (!confirm("Remove this redemption and restore the points to your balance?")) return;
+  await sb.from("redemptions").delete().eq("id", id);
+  const b = DB.state.balances || {};
+  b[program] = (b[program] || 0) + points;
+  await sb.from("hub_state").upsert({ key: "balances", value: b, updated_at: new Date().toISOString() });
+  await loadAll();
+  toast("Removed — points restored");
 }
 
 // ---------- Packing ----------
