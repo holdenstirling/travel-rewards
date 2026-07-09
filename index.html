@@ -97,6 +97,15 @@
   .up-details { margin-top: 8px; }
   .up-details summary { cursor: pointer; font-size: 12px; color: #8a8578; font-weight: 600; }
   .up-details[open] { background: #faf9f6; border-radius: 8px; padding: 8px; }
+  .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
+  .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
+  @media (max-width: 640px) {
+    .grid-ev, .grid-res { grid-template-columns: 1fr 1fr; }
+    .grid-ev .btn, .grid-res .btn { grid-column: 1 / -1; }
+    table { display: block; overflow-x: auto; }
+    .dstack { min-width: 40px; }
+    .up-item { padding: 10px 11px; gap: 9px; }
+  }
   @media (max-width: 600px) {
     body { padding: 10px; padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     h1 { font-size: 19px; }
@@ -159,7 +168,7 @@
     <button class="tab cal-filter" data-f="personal">🏠 Personal</button>
   </div>
   <div class="card">
-    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:end">
+    <div class="grid-ev">
       <label style="font-size:11px;color:#666">Add an event<br><input type="text" id="ev-label" placeholder="e.g. Dad visiting" style="width:100%;margin-top:3px"></label>
       <label style="font-size:11px;color:#666">Date<br><input type="date" id="ev-start" style="width:100%;margin-top:3px"></label>
       <label style="font-size:11px;color:#666">End (opt.)<br><input type="date" id="ev-end" style="width:100%;margin-top:3px"></label>
@@ -292,7 +301,7 @@
     1. Never transfer speculatively. 2. Check transfer bonuses first. 3. Pool FU → CSP. 4. Prime Visa ≠ UR. 5. Aeroplan takes MR + UR. 6. Rentals → CSP, decline CDW. 7. Flights → Platinum. 8. Cards ≠ mountain rescue insurance (ÖAV).
   </div>
   <div class="group-title">🔗 Resources</div>
-  <div class="card"><div style="display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;align-items:end">
+  <div class="card"><div class="grid-res">
     <label style="font-size:11px;color:#666">Label<br><input type="text" id="res-label" style="width:100%;margin-top:3px"></label>
     <label style="font-size:11px;color:#666">URL<br><input type="text" id="res-url" placeholder="https://…" style="width:100%;margin-top:3px"></label>
     <label style="font-size:11px;color:#666">Category<br><input type="text" id="res-cat" placeholder="e.g. Japan" style="width:100%;margin-top:3px"></label>
