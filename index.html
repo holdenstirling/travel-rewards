@@ -108,6 +108,13 @@
   .up2 .up-body { padding: 4px 13px 12px 67px; border-top: 1px dashed #f0ede7; }
   @media (max-width: 600px) { .up2 .up-body { padding-left: 13px; } }
   .today-badge { background: #b2543a; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; letter-spacing: .04em; }
+  #chat-fab { position: fixed; bottom: 20px; right: 18px; z-index: 30; width: 52px; height: 52px; border-radius: 50%; border: none; background: #1a1a1a; color: #fff; font-size: 22px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); transition: transform .1s; }
+  #chat-fab:active { transform: scale(.93); }
+  #chat-fab .dot { position: absolute; top: 3px; right: 3px; width: 11px; height: 11px; background: #b3261e; border-radius: 50%; border: 2px solid #f7f6f3; }
+  .xlink { color: #2a4d8f; text-decoration: underline; cursor: pointer; font-size: 12px; }
+  .rw-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid #f0ede7; gap: 10px; }
+  .rw-row:last-child { border-bottom: none; }
+  .rw-n { font-weight: 700; white-space: nowrap; }
   .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
   .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
   @media (max-width: 640px) {
@@ -162,7 +169,7 @@
   <button class="tab" data-p="addtrip">➕ Add Trip</button>
   <button class="tab" data-p="chat">💬 Chat</button>
   <button class="tab" data-p="credits">Credits</button>
-  <button class="tab" data-p="calc">Points vs Cash</button>
+  <button class="tab" data-p="calc">💎 Rewards</button>
   <button class="tab" data-p="packing">Packing</button>
   <button class="tab" data-p="todo">✅ To-Do</button>
   <button class="tab" data-p="status">Status</button>
@@ -247,6 +254,7 @@
 <div id="credits" class="panel"></div>
 
 <div id="calc" class="panel">
+  <div id="rewards-summary"></div>
   <div class="card">
     <h3>Should this be points or cash?</h3>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px">
@@ -328,6 +336,7 @@
 </div>
 
 <div class="note">Dynamic Hub — data syncs across devices via Supabase and is shared with Claude. <span class="sync" id="sync-status"></span> <button class="del" onclick="sb.auth.signOut().then(()=>location.reload())">sign out</button></div>
+<button id="chat-fab" title="Chat" onclick="goTab('chat')">💬</button>
 </div>
 
 <script>
@@ -425,7 +434,7 @@ async function loadAll(){
   document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
   const cur = document.getElementById("c-cur");
   cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
-  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions();
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards();
   updateChatBadge(); maybeRestoreTab();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
@@ -469,6 +478,12 @@ function updateChatBadge(){
   let dot = tab.querySelector(".dot");
   if (has && !dot) { dot = document.createElement("span"); dot.className = "dot"; tab.appendChild(dot); }
   if (!has && dot) dot.remove();
+  const fab = document.getElementById("chat-fab");
+  if (fab) {
+    let fdot = fab.querySelector(".dot");
+    if (has && !fdot) { fdot = document.createElement("span"); fdot.className = "dot"; fab.appendChild(fdot); }
+    if (!has && fdot) fdot.remove();
+  }
 }
 
 // ---------- Trips ----------
@@ -625,7 +640,7 @@ async function askNow(){
   try {
     const { data: { session } } = await sb.auth.getSession();
     const b = DB.state.balances || {};
-    const context = `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026 (Hyatt: UR transfers 1:1 now; Park Hyatt Beaver Creek is Cat 8 ~35-45k/night, Grand Hyatt Vail Cat 7 ~30-40k, lower-cat Hyatts 8-25k). TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" | ")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" | ")}.${askCtx ? " FOCUS ITEM (the user is asking about this specific item — use all its details): " + JSON.stringify(askCtx.item) : ""} Be concise and concrete with real numbers. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
+    const context = `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). PHILOSOPHY: optimize the REWARD first — the experience per dollar — and treat points as mere currency; always answer in terms of what he gets (nights, cabins, trips) and its cash-equivalent value, then which currency buys it best. Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026 (Hyatt: UR transfers 1:1 now; Park Hyatt Beaver Creek is Cat 8 ~35-45k/night, Grand Hyatt Vail Cat 7 ~30-40k, lower-cat Hyatts 8-25k). TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" | ")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" | ")}.${askCtx ? " FOCUS ITEM (the user is asking about this specific item — use all its details): " + JSON.stringify(askCtx.item) : ""} Be concise and concrete with real numbers. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
     if (askCtx) askCtx = null;
     const history = DB.messages.slice(-10).map(m => ({ role: m.sender === "holden" ? "user" : "assistant", content: m.body }));
     const r = await fetch(SUPA_URL + "/functions/v1/claude-chat", {
@@ -699,6 +714,32 @@ function calcVerdict(){
   else { v = "🎯 USE POINTS"; c = "#b2543a"; why = `${cpp.toFixed(2)}¢/pt — well above the 2¢ bar.${cpp > 4 ? " Exceptional." : ""}`; }
   el.innerHTML = `<h3 style="color:${c}">${v} <span class="pill info">${cpp.toFixed(2)}¢/pt</span></h3><div class="meta" style="margin-top:6px">${why}</div>
     <div class="meta" style="margin-top:6px">${pts > bal ? "⚠️ Exceeds this balance — combine via Aeroplan or pay cash." : `Uses ${pct}% of this balance.`}</div>`;
+}
+
+// ---------- Cross-tab nav + rewards-first summary ----------
+function goTab(p){
+  const el = document.querySelector(`.tab[data-p="${p}"]`);
+  if (el) { el.click(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+}
+function renderRewards(){
+  const el = document.getElementById("rewards-summary");
+  if (!el) return;
+  if (ME !== OWNER) { el.innerHTML = ""; return; }
+  const b = DB.state.balances || {};
+  const MR = b.MR || 0, UR = b.UR || 0, UA = b.United || 0;
+  const totalVal = Math.round((MR + UR + UA) * 0.02 / 1000);
+  el.innerHTML = `<div class="card hero"><h3>🎁 What your points can buy right now</h3>
+    <div class="meta" style="color:#bbb">Rewards first, points second — the currency only matters for what it turns into. Rough total: <b style="color:#fff">~$${totalVal.toLocaleString()}k of travel</b> at good redemptions.</div></div>
+  <div class="card">
+    <div class="rw-row"><span>🇯🇵 Japan round-trips in <b>business</b> (ANA via MR)</span><span class="rw-n">×${Math.floor(MR/85000)}</span></div>
+    <div class="rw-row"><span>🏔️ Patagonia biz round-trips for two (LifeMiles via MR)</span><span class="rw-n">×${Math.floor(MR/252000)}</span></div>
+    <div class="rw-row"><span>⛷️ Park Hyatt Beaver Creek ski nights (UR→Hyatt, ~40k)</span><span class="rw-n">×${Math.floor(UR/40000)}</span></div>
+    <div class="rw-row"><span>🌍 Europe one-ways in business (Flying Blue ~60k)</span><span class="rw-n">×${Math.floor((MR+UR)/60000)}</span></div>
+    <div class="rw-row"><span>🇺🇸 Domestic round-trips (United ~25k)</span><span class="rw-n">×${Math.floor(UA/25000)}</span></div>
+    <div class="rw-row"><span>🛟 Guaranteed floor (UR portal at 1.25¢)</span><span class="rw-n">$${Math.round(UR*0.0125).toLocaleString()}</span></div>
+    <div class="meta" style="margin-top:8px">Plus ~$2,400+/yr in card credits — tracked on the <span class="xlink" onclick="goTab('credits')">Credits tab →</span></div>
+    <div class="meta" style="margin-top:4px">Turn one into a plan: <span class="xlink" onclick="goTab('addtrip')">Add Trip →</span> · question a number: <span class="xlink" onclick="goTab('chat')">Chat →</span> · book something? <span class="xlink" onclick="document.getElementById('r-label').scrollIntoView({behavior:'smooth',block:'center'})">log it below ↓</span></div>
+  </div>`;
 }
 
 // ---------- Redemptions ledger (owner) ----------
