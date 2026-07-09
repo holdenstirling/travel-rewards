@@ -130,6 +130,14 @@
   .cnote .li, .cnote .h { display: inline; }
   .cnote .h { font-weight: 700; }
   .cnote b { color: #1a1a1a; }
+  #chat-drawer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: #fff; border-radius: 18px 18px 0 0; box-shadow: 0 -6px 30px rgba(0,0,0,.25); display: none; flex-direction: column; max-height: 72vh; }
+  #chat-drawer.open { display: flex; }
+  .cd-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px 8px; font-weight: 700; }
+  #dlog { overflow-y: auto; padding: 0 14px; flex: 1; min-height: 120px; }
+  #dlog .msg { max-width: 92%; }
+  .cd-input { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid #f0ede7; }
+  .cd-input textarea { flex: 1; min-height: 44px; max-height: 90px; font-size: 16px; }
+  @media (min-width: 760px) { #chat-drawer { left: auto; right: 20px; width: 420px; border-radius: 18px; bottom: 84px; } }
   .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
   .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
   @media (max-width: 640px) {
@@ -353,7 +361,18 @@
 </div>
 
 <div class="note">Dynamic Hub — data syncs across devices via Supabase and is shared with Claude. <span class="sync" id="sync-status"></span> <button class="del" onclick="sb.auth.signOut().then(()=>location.reload())">sign out</button></div>
-<button id="chat-fab" title="Chat" onclick="goTab('chat')">💬</button>
+<button id="chat-fab" title="Chat" onclick="toggleDrawer()">💬</button>
+<div id="chat-drawer">
+  <div class="cd-head"><span>💬 Quick chat — right where you are</span><button class="del" onclick="toggleDrawer(false)">✕ close</button></div>
+  <div id="dlog"></div>
+  <div class="cd-input">
+    <textarea id="d-input" placeholder="Ask about anything on this tab… — Enter sends" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();drawerAsk();}"></textarea>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="btn" id="d-ask" onclick="drawerAsk()">⚡ Ask</button>
+      <button class="btn" style="background:#fff;color:#1a1a1a;border:1px solid #e5e1d8" onclick="drawerLeave()">📬 Leave</button>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -654,6 +673,29 @@ function payOptions(t, e){
     <div class="meta" style="margin-top:4px;font-size:12px">Math: ($${Math.round(e.flightCash).toLocaleString()} × 0.9 Platinum-earn offset) ÷ ${Math.round(e.flightPts/1000)}k pts = ${cpp.toFixed(2)}¢/pt · bars: 1.25¢ portal floor / 1.5¢ keep-points line / 2¢+ transfer territory. Real award pricing varies — saving the trip gets live research.</div>
   </div>`;
 }
+function altOptions(t, e){
+  const rows = [];
+  const fmt = (x) => "$" + Math.round(x.allCash).toLocaleString() + " / " + Math.round(x.flightPts/1000) + "k pts + $" + Math.round(x.ground).toLocaleString();
+  // other cabin
+  const oc = estimate({ ...t, cabin: t.cabin === "biz" ? "econ" : "biz" });
+  const dc = oc.allCash - e.allCash;
+  rows.push(`✈️ <b>${t.cabin === "biz" ? "Economy instead" : "Business instead"}:</b> ${fmt(oc)} <span class="pill ${dc < 0 ? "ok" : "warn"}">${dc < 0 ? "saves" : "+"} $${Math.abs(Math.round(dc)).toLocaleString()}</span>`);
+  // other styles
+  ["budget","mid","comfort"].filter(s => s !== t.style).forEach(s => {
+    const os = estimate({ ...t, style: s });
+    const ds = os.allCash - e.allCash;
+    rows.push(`🏨 <b>${s.charAt(0).toUpperCase()+s.slice(1)} style:</b> ${fmt(os)} <span class="pill ${ds < 0 ? "ok" : "warn"}">${ds < 0 ? "saves" : "+"} $${Math.abs(Math.round(ds)).toLocaleString()}</span>`);
+  });
+  // trim days
+  if (t.days > 4) {
+    const od = estimate({ ...t, days: t.days - 2 });
+    rows.push(`📆 <b>${t.days - 2} days instead of ${t.days}:</b> ${fmt(od)} <span class="pill ok">saves $${Math.round(e.allCash - od.allCash).toLocaleString()}</span>`);
+  }
+  return `<details style="margin-top:10px"><summary class="meta" style="cursor:pointer;font-weight:600">🔀 Alternatives — same trip, different dials</summary>
+    ${rows.map(r => `<div class="meta" style="margin-top:6px">${r}</div>`).join("")}
+    <div class="meta" style="margin-top:8px;font-size:12px">Flip the cabin/style/days fields above to make any of these the plan — the estimate and pay options recalculate live.</div>
+  </details>`;
+}
 function conflictsWith(t){
   if (!t.date_start || !t.date_end) return null;
   return DB.constraints.find(c => c.date_start && c.date_end && !(t.date_end < c.date_start || t.date_start > c.date_end));
@@ -678,6 +720,7 @@ function calcTrip(){
     <div class="meta">Ground (${t.days}d, ${t.style}): ~$${Math.round(e.ground).toLocaleString()}</div>
     <div class="meta" style="margin-top:6px">${e.flightPts <= total ? "✅ Points cover flights." : "⚠️ Award exceeds combined balances."} ±30% ballpark.</div>
     ${payOptions(t, e)}
+    ${altOptions(t, e)}
     <details style="margin-top:10px"><summary class="meta" style="cursor:pointer;font-weight:600">🧮 How this was calculated</summary>
       <div class="meta" style="margin-top:8px"><b>Flights</b> — $${e.perFlight.toLocaleString()} × ${t.pax} pax = $${e.flightCash.toLocaleString()}. Benchmark round-trip from DEN for <b>${t.region}</b> in <b>${t.cabin === "biz" ? "business" : "economy"}</b>: typical 2025–26 cash medians. Points: ${e.perPts}k × ${t.pax} = ${Math.round(e.flightPts/1000)}k, from published award charts via <b>${e.path}</b>.</div>
       <div class="meta" style="margin-top:6px"><b>Lodging</b> — $${e.rates[0]}/night (${t.style} tier) × ${e.rooms} room${e.rooms>1?"s":""} × ${t.days} nights = $${e.lodging.toLocaleString()}</div>
@@ -696,7 +739,8 @@ async function saveTripDB(){
   const { error } = await sb.from("trips").insert({ ...t, est_cash: Math.round(e.allCash), est_pts: Math.round(e.flightPts/1000), status: "idea", created_by: ME });
   if (error) return alert(error.message);
   await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out.`, created_by: ME });
-  ["dest","when","days","pax","anchor","notes"].forEach(k => document.getElementById("t-" + k).value = "");
+  ["dest","when","days","pax","anchor","notes","start","end"].forEach(k => { const el = document.getElementById("t-" + k); if (el) el.value = ""; });
+  localStorage.removeItem("tripdraft");
   await loadAll();
   toast("Trip saved — Claude will research it 🔍");
   document.querySelector('[data-p="trips"]').click();
@@ -725,6 +769,7 @@ function renderChat(){
     return `<div class="msg ${mine ? "holden" : "claude"}">${m.sender !== "claude" && !mine ? `<b>👥 ${esc(who)}</b><br>` : ""}${body}<div class="t">${esc(who)} · ${new Date(m.created_at).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" })}</div></div>`;
   }).join("");
   el.scrollTop = el.scrollHeight;
+  if (document.getElementById("chat-drawer")?.classList.contains("open")) mirrorChat();
 }
 async function leaveMessage(){
   if (!requireOnline()) return;
@@ -732,17 +777,50 @@ async function leaveMessage(){
   if (!v) return;
   await sb.from("messages").insert({ sender: "holden", body: v, created_by: ME });
   document.getElementById("chat-input").value = "";
-  await loadAll(); document.querySelector('[data-p="chat"]').click();
+  await loadAll(); focusChat();
   toast("📬 Claude will see this in the next daily scan");
 }
 let askCtx = null;
+function toggleDrawer(force){
+  const d = document.getElementById("chat-drawer");
+  const open = force !== undefined ? force : !d.classList.contains("open");
+  d.classList.toggle("open", open);
+  if (open) {
+    mirrorChat();
+    localStorage.setItem("chatSeen", Date.now());
+    document.querySelectorAll("#chat-fab .dot, .tab[data-p='chat'] .dot").forEach(x => x.remove());
+  }
+}
+function mirrorChat(){
+  const dlog = document.getElementById("dlog"), src = document.getElementById("chat-log");
+  if (dlog && src) { dlog.innerHTML = src.innerHTML; dlog.scrollTop = dlog.scrollHeight; }
+}
+function focusChat(){
+  if (document.getElementById("chat-drawer").classList.contains("open")) mirrorChat();
+  else document.querySelector('[data-p="chat"]').click();
+}
+function drawerAsk(){
+  const di = document.getElementById("d-input"), v = di.value.trim();
+  if (!v) return;
+  document.getElementById("chat-input").value = v;
+  di.value = "";
+  askNow();
+}
+async function drawerLeave(){
+  const di = document.getElementById("d-input"), v = di.value.trim();
+  if (!v || !requireOnline()) return;
+  await sb.from("messages").insert({ sender: "holden", body: v, created_by: ME });
+  di.value = "";
+  await loadAll(); mirrorChat();
+  toast("📬 Claude will see this in the next daily scan");
+}
 function askWith(kind, item, prefill){
   askCtx = { kind, item };
-  document.querySelector('.tab[data-p="chat"]').click();
-  const inp = document.getElementById("chat-input");
+  toggleDrawer(true);
+  const inp = document.getElementById("d-input");
   inp.value = prefill;
   inp.focus();
-  toast("Item loaded into chat — ask anything about it");
+  toast("Item loaded — ask anything about it");
 }
 function askAbout(kind, id, q){
   const item = kind === "trip" ? DB.trips.find(t => t.id === id) : DB.events.find(e => e.id === id);
@@ -761,9 +839,10 @@ async function askNow(){
   const v = document.getElementById("chat-input").value.trim();
   if (!v) return;
   const btn = document.getElementById("ask-btn"); btn.disabled = true; btn.textContent = "thinking…";
+  const dbtn = document.getElementById("d-ask"); if (dbtn) { dbtn.disabled = true; dbtn.textContent = "…"; }
   await sb.from("messages").insert({ sender: "holden", body: v, created_by: ME });
   document.getElementById("chat-input").value = "";
-  await loadAll(); document.querySelector('[data-p="chat"]').click();
+  await loadAll(); focusChat();
   try {
     const { data: { session } } = await sb.auth.getSession();
     const b = DB.state.balances || {};
@@ -781,7 +860,8 @@ async function askNow(){
     await sb.from("messages").insert({ sender: "claude", body: "⚡ Error: " + e.message });
   }
   btn.disabled = false; btn.textContent = "⚡ Ask now";
-  await loadAll(); document.querySelector('[data-p="chat"]').click();
+  if (dbtn) { dbtn.disabled = false; dbtn.textContent = "⚡ Ask"; }
+  await loadAll(); focusChat();
 }
 
 // ---------- Credits ----------
@@ -1285,6 +1365,29 @@ document.querySelectorAll(".tab[data-p]").forEach(t => t.addEventListener("click
   localStorage.setItem("hubtab", t.dataset.p);
   if (t.dataset.p === "chat") { localStorage.setItem("chatSeen", Date.now()); const d = t.querySelector(".dot"); if (d) d.remove(); }
 }));
+// ---------- Trip draft autosave (never lose planning data) ----------
+const DRAFT_FIELDS = ["t-dest","t-when","t-start","t-end","t-days","t-pax","t-region","t-cabin","t-style","t-anchor","t-notes"];
+function saveDraft(){
+  const d = {};
+  DRAFT_FIELDS.forEach(k => { const el = document.getElementById(k); if (el && el.value) d[k] = el.value; });
+  if (Object.keys(d).length) localStorage.setItem("tripdraft", JSON.stringify(d));
+  else localStorage.removeItem("tripdraft");
+}
+function restoreDraft(){
+  try {
+    const d = JSON.parse(localStorage.getItem("tripdraft") || "{}");
+    const keys = Object.keys(d);
+    if (!keys.length) return;
+    keys.forEach(k => { const el = document.getElementById(k); if (el) el.value = d[k]; });
+    if (d["t-dest"]) { calcTrip(); toast("📝 Draft trip restored — nothing lost"); }
+  } catch {}
+}
+DRAFT_FIELDS.forEach(k => {
+  const el = document.getElementById(k);
+  if (el) { el.addEventListener("input", saveDraft); el.addEventListener("change", saveDraft); }
+});
+restoreDraft();
+
 document.querySelectorAll(".sub-tab").forEach(t => t.addEventListener("click", () => {
   document.querySelectorAll(".sub-tab").forEach(x => x.classList.remove("active"));
   t.classList.add("active"); curTrip = t.dataset.trip; renderPacking();
