@@ -82,6 +82,13 @@
   .icon-btn:hover { background: #f0efeb; }
   #offline-banner { display: none; position: sticky; top: 0; z-index: 20; background: #a15c00; color: #fff; text-align: center; font-size: 12.5px; padding: 7px 10px; border-radius: 8px; margin-bottom: 10px; }
   body.offline #offline-banner { display: block; }
+  /* rich text in chat */
+  .msg .li { display: block; padding-left: 16px; text-indent: -10px; margin: 2px 0; }
+  .msg code { background: rgba(0,0,0,.08); padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+  .msg pre { background: rgba(0,0,0,.06); padding: 8px 10px; border-radius: 8px; overflow-x: auto; font-size: 12px; font-family: ui-monospace, Menlo, monospace; margin: 6px 0; }
+  .msg a { color: #2a4d8f; text-decoration: underline; }
+  .msg.holden code { background: rgba(255,255,255,.18); }
+  .msg .h { display: block; font-weight: 700; margin: 6px 0 2px; font-size: 14px; }
   @media (max-width: 600px) {
     body { padding: 10px; padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: max(14px, env(safe-area-inset-bottom)); }
     h1 { font-size: 19px; }
@@ -519,12 +526,26 @@ async function saveTripDB(){
 }
 
 // ---------- Chat ----------
+function md(s){
+  // escape first (safe), then layer formatting back in
+  let h = esc(s);
+  h = h.replace(/```([\s\S]*?)```/g, (m, c) => "<pre>" + c.trim() + "</pre>");
+  h = h.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  h = h.replace(/^#{1,4}\s+(.*)$/gm, '<span class="h">$1</span>');
+  h = h.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  h = h.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,!?]|$)/g, "$1<i>$2</i>");
+  h = h.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  h = h.replace(/^[-•*]\s+(.*)$/gm, '<span class="li">• $1</span>');
+  h = h.replace(/^(\d+)[.)]\s+(.*)$/gm, '<span class="li">$1. $2</span>');
+  return h;
+}
 function renderChat(){
   const el = document.getElementById("chat-log");
   el.innerHTML = DB.messages.map(m => {
     const mine = m.sender !== "claude" && m.created_by === ME;
     const who = m.sender === "claude" ? "claude" : nameOf(m.created_by);
-    return `<div class="msg ${mine ? "holden" : "claude"}">${m.sender !== "claude" && !mine ? `<b>👥 ${esc(who)}</b><br>` : ""}${esc(m.body)}<div class="t">${esc(who)} · ${new Date(m.created_at).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" })}</div></div>`;
+    const body = m.sender === "claude" ? md(m.body) : esc(m.body);
+    return `<div class="msg ${mine ? "holden" : "claude"}">${m.sender !== "claude" && !mine ? `<b>👥 ${esc(who)}</b><br>` : ""}${body}<div class="t">${esc(who)} · ${new Date(m.created_at).toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" })}</div></div>`;
   }).join("");
   el.scrollTop = el.scrollHeight;
 }
