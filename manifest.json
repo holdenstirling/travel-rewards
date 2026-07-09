@@ -1,0 +1,11 @@
+{
+  "name": "Trips / Travel / Rewards Hub",
+  "short_name": "Trips Hub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#b2543a",
+  "icons": [
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
