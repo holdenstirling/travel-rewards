@@ -89,14 +89,25 @@
   .msg a { color: #2a4d8f; text-decoration: underline; }
   .msg.holden code { background: rgba(255,255,255,.18); }
   .msg .h { display: block; font-weight: 700; margin: 6px 0 2px; font-size: 14px; }
-  /* upcoming redesign */
-  .up-item { display: flex; gap: 12px; padding: 12px 14px; }
-  .dstack { min-width: 46px; text-align: center; flex-shrink: 0; }
-  .dnum { font-size: 21px; font-weight: 800; line-height: 1.05; }
-  .dmon { font-size: 10.5px; color: #8a8578; text-transform: uppercase; letter-spacing: .04em; }
-  .up-details { margin-top: 8px; }
-  .up-details summary { cursor: pointer; font-size: 12px; color: #8a8578; font-weight: 600; }
-  .up-details[open] { background: #faf9f6; border-radius: 8px; padding: 8px; }
+  /* upcoming timeline */
+  .tl { position: relative; padding-left: 26px; }
+  .tl::before { content: ""; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: #e5e2dc; border-radius: 2px; }
+  .tl-item { position: relative; margin-bottom: 10px; }
+  .tl-dot { position: absolute; left: -24px; top: 16px; width: 12px; height: 12px; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 0 0 2px var(--kc, #8a8578); background: var(--kc, #8a8578); }
+  .up2 { background: #fff; border: 1px solid #e5e2dc; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: box-shadow .15s; }
+  .up2:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+  .up2 > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 11px 13px; cursor: pointer; }
+  .up2 > summary::-webkit-details-marker { display: none; }
+  .up2 .dstack { min-width: 42px; text-align: center; flex-shrink: 0; }
+  .dnum { font-size: 20px; font-weight: 800; line-height: 1.05; }
+  .dmon { font-size: 10px; color: #8a8578; text-transform: uppercase; letter-spacing: .05em; }
+  .up2 .ttl { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.35; }
+  .up2 .sub { font-size: 11.5px; color: #8a8578; font-weight: 400; margin-top: 1px; }
+  .chev { flex-shrink: 0; color: #c9c4ba; font-size: 12px; transition: transform .18s; }
+  .up2[open] .chev { transform: rotate(90deg); }
+  .up2 .up-body { padding: 4px 13px 12px 67px; border-top: 1px dashed #f0ede7; }
+  @media (max-width: 600px) { .up2 .up-body { padding-left: 13px; } }
+  .today-badge { background: #b2543a; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; letter-spacing: .04em; }
   .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
   .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
   @media (max-width: 640px) {
@@ -731,10 +742,10 @@ const KIND_PILL = { trip:"info", deadline:"soon", logistics:"warn", milestone:"i
 function nextResets(){
   const out = [], n = new Date();
   const iso = d => d.toISOString().slice(0,10);
-  out.push({ date: iso(new Date(n.getFullYear(), n.getMonth()+1, 1)), label: "💳 Monthly credits reset (Uber, entertainment, Disney, DoorDash)", kind: "reset" });
+  out.push({ date: iso(new Date(n.getFullYear(), n.getMonth()+1, 1)), label: "💳 Monthly credits reset", kind: "reset", notes: "Fresh: $15 Uber Cash (Platinum), digital entertainment, $10 Disney Bundle (BCP), $10 DoorDash (CSP). Use last month's before midnight — no rollover." });
   const q = Math.floor(n.getMonth()/3);
-  out.push({ date: iso(new Date(n.getFullYear() + (q === 3 ? 1 : 0), (q+1)%4*3, 1)), label: "💳 Quarterly reset — Resy $100 + Lululemon $75", kind: "reset" });
-  out.push({ date: iso(new Date(n.getFullYear()+1, 0, 1)), label: "💳 Annual reset — airline fee, first-half hotel credit, Q1 credits", kind: "reset" });
+  out.push({ date: iso(new Date(n.getFullYear() + (q === 3 ? 1 : 0), (q+1)%4*3, 1)), label: "💳 Quarterly reset — Resy $100 + Lululemon $75", kind: "reset", notes: "Calendar quarters. Spend the current quarter's before it flips." });
+  out.push({ date: iso(new Date(n.getFullYear()+1, 0, 1)), label: "💳 Annual reset — all yearly credits", kind: "reset", notes: "$200 airline fee (confirm United selected), first-half $300 FHR hotel credit, Q1 Resy/Lululemon, Equinox, CLEAR check." });
   return out;
 }
 const KIND_COLOR = { trip:"#b2543a", logistics:"#a15c00", milestone:"#2a4d8f", race:"#256a37", credit:"#256a37", reset:"#256a37", deadline:"#b3261e", constraint:"#a15c00", personal:"#2a4d8f" };
@@ -750,31 +761,38 @@ function renderUpcoming(){
   items = items.filter(i => (i.end || i.date) >= today).sort((a,b) => a.date.localeCompare(b.date));
   if (!items.length) { el.innerHTML = '<div class="empty">Nothing in this view.</div>'; return; }
   let html = "", lastMonth = "";
+  const todayD = new Date(); todayD.setHours(12,0,0,0);
   items.forEach(i => {
     const d = new Date(i.date + "T12:00:00");
     const month = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    if (month !== lastMonth) { html += `<div class="group-title">${month}</div>`; lastMonth = month; }
+    if (month !== lastMonth) { if (lastMonth) html += "</div>"; html += `<div class="group-title">${month}</div><div class="tl">`; lastMonth = month; }
     const du = daysUntil(d);
-    const pill = du <= 0 ? '<span class="pill soon">now</span>' : du <= 14 ? `<span class="pill soon">in ${du}d</span>` : `<span class="pill info">in ${du}d</span>`;
+    const happening = du <= 0 && (!i.end || i.end >= todayD.toISOString().slice(0,10));
+    const when = happening ? '<span class="today-badge">NOW</span>' : du === 1 ? '<span class="pill soon">tomorrow</span>' : du <= 14 ? `<span class="pill soon">in ${du}d</span>` : `<span class="pill info">in ${du}d</span>`;
     const color = KIND_COLOR[i.kind] || "#8a8578";
-    let extras = "";
+    const range = i.end && i.end !== i.date ? ` → ${new Date(i.end + "T12:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" })}` : "";
+    // expandable body: notes for everything; tasks + sharing for DB items
+    let body = i.notes ? `<div class="meta" style="margin-top:6px">${esc(i.notes)}</div>` : "";
+    let taskBadge = "";
     if (i.id) {
       const key = (i.type === "trip" ? "trip_" : "ev_") + i.id;
       const tds = (DB.todos || []).filter(t => t.list === key);
       const open = tds.filter(t => !t.done).length;
-      const share = (i.type === "event" && ME === OWNER)
-        ? `<div style="margin-top:6px"><button class="del" style="color:${i.vis === "private" ? "#a15c00" : "#256a37"}" onclick="toggleVis('${i.id}','${i.vis}')">${i.vis === "private" ? "🔒 private — tap to share with collaborators" : "👥 shared — tap to make private"}</button></div>` : "";
-      extras = `<details class="up-details"><summary>☑️ Tasks & actions${open ? ` <span class="pill warn">${open} open</span>` : ""}</summary>
-        ${tds.map(todoRow).join("") || '<div class="meta" style="padding:4px 0">Nothing yet — add prep tasks, bookings to make, things to bring.</div>'}
-        <div style="display:flex;gap:6px;margin-top:6px"><input type="text" id="evt-${i.id}" placeholder="Add a task for this" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','evt-${i.id}')"><button class="btn" style="padding:6px 10px" onclick="addTodo('${key}','evt-${i.id}')">Add</button></div>
-        ${share}</details>`;
+      if (open) taskBadge = ` <span class="pill warn">☑️ ${open}</span>`;
+      body += `<div class="group-title" style="margin:10px 0 4px">Tasks</div>
+        ${tds.map(todoRow).join("") || '<div class="meta">Nothing yet — bookings to make, things to bring, people to tell.</div>'}
+        <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="evt-${i.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','evt-${i.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','evt-${i.id}')">Add</button></div>`;
+      if (i.type === "event" && ME === OWNER)
+        body += `<div style="margin-top:8px"><button class="del" style="color:${i.vis === "private" ? "#a15c00" : "#256a37"}" onclick="event.preventDefault();toggleVis('${i.id}','${i.vis}')">${i.vis === "private" ? "🔒 private — tap to share with collaborators" : "👥 shared — tap to make private"}</button></div>`;
     }
-    const endStr = i.end && i.end !== i.date ? `<div class="meta">through ${new Date(i.end + "T12:00:00").toLocaleDateString("en-US", { month:"short", day:"numeric" })}</div>` : "";
-    html += `<div class="card up-item" style="border-left:4px solid ${color}">
-      <div class="dstack"><div class="dnum">${d.getDate()}</div><div class="dmon">${d.toLocaleDateString("en-US",{month:"short"})}</div><div class="dmon">${d.toLocaleDateString("en-US",{weekday:"short"})}</div></div>
-      <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${esc(i.label)} ${pill}${i.vis === "private" ? ' <span class="pill warn">🔒</span>' : ""}</div>
-      ${endStr}${i.notes ? `<div class="meta">${esc(i.notes)}</div>` : ""}${extras}</div></div>`;
+    html += `<div class="tl-item" style="--kc:${color}"><span class="tl-dot"></span>
+      <details class="up2"><summary>
+        <div class="dstack"><div class="dnum">${d.getDate()}</div><div class="dmon">${d.toLocaleDateString("en-US",{weekday:"short"})}</div></div>
+        <div class="ttl">${esc(i.label)}<div class="sub">${d.toLocaleDateString("en-US",{month:"short",day:"numeric"})}${range} · ${when}${taskBadge}${i.vis === "private" ? " · 🔒" : ""}</div></div>
+        <span class="chev">▶</span></summary>
+      <div class="up-body">${body || '<div class="meta">No details.</div>'}</div></details></div>`;
   });
+  html += "</div>";
   el.innerHTML = html;
 }
 async function toggleVis(id, cur){
