@@ -197,9 +197,32 @@
   <button class="tab" data-p="todo">✅ To-Do</button>
   <button class="tab" data-p="status">Status</button>
   <button class="tab" data-p="playbook">Playbook</button>
+  <button class="tab" data-p="setup">⚙️ My Setup</button>
 </div>
 
 <div id="today-strip"></div>
+
+<div id="setup" class="panel">
+  <div class="card hero"><h3>⚙️ Make the Hub yours</h3><div class="meta" style="color:#bbb">Your cards, points, and calendar — private to you. The Which-card picker, trip estimator, and rewards views personalize from what you enter here.</div></div>
+  <div class="group-title">👤 Basics</div>
+  <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <input type="text" id="p-name" placeholder="Display name">
+    <input type="text" id="p-airport" placeholder="Home airport (e.g. DEN)" maxlength="3" style="text-transform:uppercase">
+    <select id="p-cabin" style="grid-column:1/-1"><option value="econ">Long-haul preference: Economy</option><option value="biz">Long-haul preference: Business</option></select>
+  </div>
+  <div class="group-title">💳 My cards <span class="meta" style="font-weight:400">— tap all you carry</span></div>
+  <div class="card"><div class="wc-chips" id="p-cards"></div>
+    <input type="text" id="p-cardcustom" placeholder="Other card(s), comma-separated" style="margin-top:10px;width:100%"></div>
+  <div class="group-title">🎯 My points balances</div>
+  <div class="card" id="p-balances"></div>
+  <div class="group-title">📅 Link my calendar <span class="meta" style="font-weight:400">— optional</span></div>
+  <div class="card">
+    <input type="text" id="p-ical" placeholder="Paste your secret iCal address (https://calendar.google.com/…/basic.ics)" style="width:100%">
+    <div class="meta" style="margin-top:6px">Google Calendar → Settings → your calendar → <b>Integrate calendar</b> → copy "Secret address in iCal format". Your events then appear on 📅 Upcoming — <b>visible only to you</b>, never stored, never shared.</div>
+  </div>
+  <button class="btn" style="margin-top:12px;width:100%" onclick="saveProfile()">Save my setup</button>
+  <div class="meta" style="margin-top:8px">🔒 Everything on this screen is locked to your login by row-level security — other members (including Holden) can't read it.</div>
+</div>
 
 <div id="trips" class="panel active"><div class="empty">Loading…</div></div>
 
@@ -443,7 +466,7 @@ async function loadAll(){
   setSync("syncing…");
   const { data: { session } } = await sb.auth.getSession();
   ME = session?.user?.email || null;
-  const [t, c, m, s, ev, u, td, rs, rd] = await Promise.all([
+  const [t, c, m, s, ev, u, td, rs, rd, pf] = await Promise.all([
     sb.from("trips").select("*").order("created_at"),
     sb.from("constraints").select("*").order("date_start", { nullsFirst: false }),
     sb.from("messages").select("*").order("created_at").limit(100),
@@ -452,10 +475,12 @@ async function loadAll(){
     sb.from("allowed_users").select("*"),
     sb.from("todos").select("*").order("created_at"),
     sb.from("resources").select("*").order("category"),
-    sb.from("redemptions").select("*").order("date", { ascending: false })
+    sb.from("redemptions").select("*").order("date", { ascending: false }),
+    sb.from("user_profiles").select("*").eq("email", session?.user?.email || "").maybeSingle()
   ]);
   if (t.error && c.error && m.error) { restoreOffline(); return; } // network down mid-session
   DB.trips = t.data || []; DB.constraints = c.data || []; DB.messages = m.data || []; DB.events = ev.data || []; DB.users = u.data || []; DB.todos = td.data || []; DB.resources = rs.data || []; DB.redemptions = rd.data || [];
+  PROFILE = pf?.data || PROFILE;
   document.body.classList.remove("offline");
   localStorage.setItem("hubcache", JSON.stringify(DB));
   if (ME !== OWNER) { const ab = document.getElementById("ask-btn"); if (ab) { ab.disabled = true; ab.textContent = "⚡ owner only"; } }
@@ -466,11 +491,20 @@ async function loadAll(){
     if (n) { await sb.from("allowed_users").update({ name: n }).eq("email", ME); meRow.name = n; }
   }
   DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
-  const b = DB.state.balances || {};
-  document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
+  const b = myBalances();
+  if (ME === OWNER) {
+    document.getElementById("header-sub").innerHTML = `Platinum · CSP · Freedom Unl. · Prime Visa · BCP · DEN · <b>MR ${Math.round((b.MR||0)/1000)}k · UR ${Math.round((b.UR||0)/1000)}k · United ${Math.round((b.United||0)/1000)}k</b> <span class="sync">(${esc(b.updated||"")})</span>`;
+  } else {
+    const mine = Object.entries(b).slice(0, 4).map(([k, v]) => `${k} ${Math.round(v/1000)}k`).join(" · ");
+    document.getElementById("header-sub").innerHTML = mine
+      ? `${esc(PROFILE?.home_airport || "")} · <b>${mine}</b> <span class="xlink" onclick="goTab('setup')">edit</span>`
+      : `Personalize me → <span class="xlink" onclick="goTab('setup')">⚙️ My Setup</span>`;
+  }
   const cur = document.getElementById("c-cur");
-  cur.innerHTML = ["MR","UR","United"].map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("");
-  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards(); renderToday();
+  const progs = ME === OWNER ? ["MR","UR","United"] : Object.keys(b);
+  cur.innerHTML = progs.map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("") || '<option value="0">set balances in My Setup</option>';
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards(); renderToday(); renderSetup();
+  loadMyCal();
   updateChatBadge(); maybeRestoreTab();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
@@ -642,7 +676,7 @@ function estimate(t){
     rooms, lodging, food, act, perFlight: (t.cabin === "biz" ? f[2] : f[0]), perPts: (t.cabin === "biz" ? f[3] : f[1]), rates: s };
 }
 function payOptions(t, e){
-  const b = DB.state.balances || {};
+  const b = myBalances();
   const effCash = e.flightCash * 0.9; // paying cash on Platinum earns 5x MR ≈ 10% back
   const cpp = effCash / e.flightPts * 100;
   const vcolor = cpp >= 2 ? "#b2543a" : cpp >= 1.5 ? "#a15c00" : "#256a37";
@@ -704,8 +738,8 @@ function calcTrip(){
   const t = tripData(), el = document.getElementById("t-est");
   if (!t.dest || !t.days) { el.innerHTML = '<div class="meta">Answer destination, days, travelers for an estimate.</div>'; return; }
   const e = estimate(t);
-  const b = DB.state.balances || {};
-  const total = (b.MR||0) + (b.UR||0) + (b.United||0);
+  const b = myBalances();
+  const total = Object.values(b).filter(v => typeof v === "number").reduce((s, v) => s + v, 0);
   const MIN_DAYS = { domestic:2, mexico:4, europe:7, asia:9, southam:10, oceania:10, africa:9 };
   const adv = [];
   const conflict = conflictsWith(t);
@@ -924,6 +958,100 @@ function calcVerdict(){
     <div class="meta" style="margin-top:8px;border-top:1px solid #f0ede7;padding-top:6px">🧮 Math: ($${cash.toLocaleString()}${isPlat ? " × 0.9 — you'd earn 5x MR paying cash on Platinum, so cash is effectively 10% cheaper" : ""} − $${fees.toLocaleString()} award fees) ÷ ${pts.toLocaleString()} pts = <b>${cpp.toFixed(2)}¢ of value per point</b>. Bars: 1.25¢ = guaranteed UR portal floor · 1.5¢ = your keep-the-points line · 2¢+ = good transfer-partner territory.</div>`;
 }
 
+// ---------- Per-user profile (cards, balances, calendar) ----------
+let PROFILE = null, MYCAL = null;
+const CARD_CATALOG = {
+  amex_platinum: { name: "Amex Platinum", cats: { flights: [5, "5x MR"], hotels: [5, "5x MR (Amex Travel)"] } },
+  amex_gold: { name: "Amex Gold", cats: { dining: [4, "4x MR"], groceries: [4, "4x MR (US)"], flights: [3, "3x MR"] } },
+  csp: { name: "Chase Sapphire Preferred", cats: { dining: [3, "3x UR"], streaming: [3, "3x UR"], groceries: [3, "3x UR (online)"], travel: [2, "2x UR"], gas: [3, "3x UR (EV/gas)"] } },
+  csr: { name: "Chase Sapphire Reserve", cats: { dining: [3, "3x UR"], travel: [3, "3x UR"] } },
+  freedom_unlimited: { name: "Chase Freedom Unlimited", cats: { drugstores: [3, "3% → UR"], dining: [3, "3% → UR"], everything: [1.5, "1.5x → UR"] } },
+  venture_x: { name: "Capital One Venture X", cats: { hotels: [10, "10x (portal)"], flights: [5, "5x (portal)"], everything: [2, "2x miles"] } },
+  citi_strata: { name: "Citi Strata Premier", cats: { dining: [3, "3x TYP"], groceries: [3, "3x TYP"], gas: [3, "3x TYP"], flights: [3, "3x TYP"], hotels: [3, "3x TYP"] } },
+  bilt: { name: "Bilt", cats: { rent: [1, "1x on rent (!)"], dining: [3, "3x Bilt"], travel: [2, "2x Bilt"] } },
+  bcp: { name: "Amex Blue Cash Preferred", cats: { groceries: [6, "6% cash (US)"], streaming: [6, "6% cash"], gas: [3, "3% cash"] } },
+  prime_visa: { name: "Amazon Prime Visa", cats: { amazon: [5, "5% (Amazon/WF)"] } },
+  amex_bce: { name: "Amex Blue Cash Everyday", cats: { groceries: [3, "3% cash (US)"], gas: [3, "3%"], online: [3, "3% online retail"] } },
+  wf_active: { name: "WF Active Cash / flat 2%", cats: { everything: [2, "2% cash"] } }
+};
+const PROGRAMS = ["MR","UR","C1","TYP","United","Delta","AA","Alaska","Southwest","Hyatt","Marriott","Hilton","Bilt"];
+const CAT_LABELS = { dining: "🍽️ Dining", groceries: "🛒 Groceries", flights: "✈️ Flights", hotels: "🏨 Hotels", travel: "🚆 Other travel", gas: "⛽ Gas", streaming: "📺 Streaming", drugstores: "💊 Drugstores", amazon: "📦 Amazon", rent: "🏠 Rent", online: "🛍️ Online", everything: "🧾 Everything else" };
+function myBalances(){
+  if (ME === OWNER) return DB.state.balances || {};
+  return (PROFILE && PROFILE.balances) || {};
+}
+function renderSetup(){
+  const p = PROFILE || {};
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+  set("p-name", p.name); set("p-airport", p.home_airport); set("p-cabin", p.cabin_pref || "econ"); set("p-ical", p.ical_url);
+  const mine = new Set((p.cards || []).filter(c => CARD_CATALOG[c]));
+  document.getElementById("p-cards").innerHTML = Object.entries(CARD_CATALOG).map(([k, c]) =>
+    `<button class="wc-chip ${mine.has(k) ? "active" : ""}" onclick="this.classList.toggle('active')" data-card="${k}">${c.name}</button>`).join("");
+  set("p-cardcustom", (p.cards || []).filter(c => !CARD_CATALOG[c]).join(", "));
+  const b = p.balances || {};
+  document.getElementById("p-balances").innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">` +
+    PROGRAMS.map(pr => `<div><div class="meta" style="margin-bottom:2px">${pr}</div><input type="text" id="pb-${pr}" placeholder="0" value="${b[pr] ? b[pr].toLocaleString() : ""}"></div>`).join("") + `</div>
+    <div class="meta" style="margin-top:8px">Points only — never enter card numbers or logins here.</div>`;
+  if (ME === OWNER) document.getElementById("p-balances").innerHTML += `<div class="meta" style="margin-top:6px">ℹ️ Your MR/UR/United sync automatically from AwardWallet — entries here are extra programs.</div>`;
+}
+async function saveProfile(){
+  if (!requireOnline()) return;
+  const cards = [...document.querySelectorAll("#p-cards .wc-chip.active")].map(x => x.dataset.card)
+    .concat(document.getElementById("p-cardcustom").value.split(",").map(s => s.trim()).filter(Boolean));
+  const balances = {};
+  PROGRAMS.forEach(pr => {
+    const raw = (document.getElementById("pb-" + pr)?.value || "").replace(/[,$\s]/g, "");
+    const v = Math.round(parseFloat(raw) * (/k$/i.test(raw) ? 1000 : 1)) || 0;
+    if (v) balances[pr] = v;
+  });
+  let ical = document.getElementById("p-ical").value.trim();
+  if (ical && !/^https:\/\//.test(ical)) { toast("Calendar link must start with https://"); return; }
+  const row = { email: ME, name: document.getElementById("p-name").value.trim() || null,
+    home_airport: document.getElementById("p-airport").value.trim().toUpperCase() || null,
+    cabin_pref: document.getElementById("p-cabin").value, cards, balances, ical_url: ical || null, updated_at: new Date().toISOString() };
+  const { error } = await sb.from("user_profiles").upsert(row);
+  if (error) return toast("Error: " + error.message);
+  PROFILE = row; MYCAL = null;
+  if (row.name) await sb.from("allowed_users").update({ name: row.name }).eq("email", ME);
+  await loadAll();
+  toast("✓ Saved — the app is now tuned to you");
+}
+async function loadMyCal(){
+  if (MYCAL !== null || !PROFILE?.ical_url || document.body.classList.contains("offline")) return;
+  MYCAL = []; // guard against re-entry
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch(SUPA_URL + "/functions/v1/ical-proxy", { method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + session.access_token, "apikey": SUPA_KEY }, body: "{}" });
+    const d = await r.json();
+    MYCAL = d.events || [];
+    if (MYCAL.length) renderUpcoming();
+  } catch { MYCAL = []; }
+}
+function whichCardGeneric(){
+  const mine = (PROFILE?.cards || []).filter(k => CARD_CATALOG[k]);
+  if (!mine.length) return `<div class="card"><h3>💳 Which card?</h3><div class="meta" style="margin-top:6px">Pick your cards in <span class="xlink" onclick="goTab('setup')">⚙️ My Setup</span> and this becomes your personal best-card picker.</div></div>`;
+  const cats = new Set();
+  mine.forEach(k => Object.keys(CARD_CATALOG[k].cats).forEach(c => cats.add(c)));
+  cats.add("everything");
+  return `<div class="card"><h3>💳 Which card?</h3><div class="meta" style="margin:4px 0 10px">Best of YOUR cards per category.</div>
+    <div class="wc-chips">${[...cats].map(c => `<button class="wc-chip" onclick="pickCardMine(this,'${c}')">${CAT_LABELS[c] || c}</button>`).join("")}</div>
+    <div id="wc-ans"></div></div>`;
+}
+function pickCardMine(btn, cat){
+  document.querySelectorAll(".wc-chip").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  const mine = (PROFILE?.cards || []).filter(k => CARD_CATALOG[k]);
+  let best = null;
+  mine.forEach(k => {
+    const hit = CARD_CATALOG[k].cats[cat] || CARD_CATALOG[k].cats.everything;
+    if (hit && (!best || hit[0] > best.rate)) best = { name: CARD_CATALOG[k].name, rate: hit[0], label: hit[1], direct: !!CARD_CATALOG[k].cats[cat] };
+  });
+  document.getElementById("wc-ans").innerHTML = best
+    ? `<div class="wc-ans"><b style="font-size:16px">${best.name}</b> <span class="pill ok">${best.label}</span>${best.direct ? "" : '<div class="meta" style="margin-top:4px">No category bonus among your cards — this is your best flat-rate.</div>'}</div>`
+    : `<div class="wc-ans">None of your cards bonus this — use your best flat-rate card.</div>`;
+}
+
 // ---------- Which card? instant picker ----------
 const WHICH_CARD = {
   "🍽️ Dining": ["Sapphire Preferred", "3x UR", "Runner-up: nothing close. Abroad too — CSP has no foreign fee."],
@@ -1017,7 +1145,15 @@ function askEstHow(id){
 function renderRewards(){
   const el = document.getElementById("rewards-summary");
   if (!el) return;
-  if (ME !== OWNER) { el.innerHTML = whichCardHTML(); return; }
+  if (ME !== OWNER) {
+    const b = myBalances();
+    const rows = Object.entries(b).map(([k, v]) =>
+      `<div class="rw-row"><span><b>${esc(k)}</b></span><span class="rw-n">${v.toLocaleString()} · ≈ $${Math.round(v * 0.0125).toLocaleString()}–$${Math.round(v * 0.02).toLocaleString()}</span></div>`).join("");
+    el.innerHTML = whichCardGeneric() + (rows
+      ? `<div class="card"><h3>🎁 Your points, as travel value</h3>${rows}<div class="meta" style="margin-top:8px">Range = 1.25¢ (portal floor) to 2¢+ (good transfers). <span class="xlink" onclick="goTab('setup')">Update balances →</span></div></div>`
+      : `<div class="card"><div class="meta">Add your points in <span class="xlink" onclick="goTab('setup')">⚙️ My Setup</span> to see what they're worth and get personal trip math.</div></div>`);
+    return;
+  }
   const b = DB.state.balances || {};
   const MR = b.MR || 0, UR = b.UR || 0, UA = b.United || 0;
   const totalVal = Math.round((MR + UR + UA) * 0.02 / 1000);
@@ -1189,7 +1325,8 @@ function renderUpcoming(){
   (DB.events || []).forEach(e => items.push({ id: e.id, type: "event", vis: e.visibility, date: e.date, end: e.end_date, label: e.label, kind: e.kind, notes: e.notes, loc: e.location, url: e.url, by: e.created_by }));
   (DB.trips || []).forEach(t => { if (t.date_start) items.push({ id: t.id, type: "trip", date: t.date_start, end: t.date_end, label: "✈️ " + t.dest, kind: "trip", notes: t.when_text }); });
   (DB.constraints || []).forEach(c => { if (c.date_start) items.push({ date: c.date_start, end: c.end_date || c.date_end, label: "🚫 " + c.label, kind: "constraint", notes: c.notes }); });
-  items = items.concat(nextResets());
+  if (ME === OWNER) items = items.concat(nextResets());
+  (MYCAL || []).forEach(e => items.push({ date: e.date, end: e.end, label: "🗓 " + e.label, kind: "personal", notes: "From your linked calendar — only you see this" }));
   if (calFilter !== "all") items = items.filter(i => (FILTER_KINDS[calFilter] || []).includes(i.kind));
   items = items.filter(i => (i.end || i.date) >= today).sort((a,b) => a.date.localeCompare(b.date));
   if (!items.length) { el.innerHTML = '<div class="empty">Nothing in this view.</div>'; return; }
