@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Trips Hub">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/points.js"></script>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -405,6 +406,18 @@
 </div>
 
 <script>
+// ---------- Error tracking (client_errors table, throttled) ----------
+let __errN = 0;
+function reportErr(msg){
+  if (__errN++ >= 5 || !window.sb || !ME) return;
+  try { sb.from("client_errors").insert({ email: ME, message: String(msg).slice(0, 500), ua: navigator.userAgent.slice(0, 120) }).then(() => {}); } catch {}
+}
+window.addEventListener("error", e => reportErr((e.message || "error") + " @ " + (e.filename || "").split("/").pop() + ":" + e.lineno));
+window.addEventListener("unhandledrejection", e => reportErr("promise: " + (e.reason?.message || e.reason)));
+
+// ---------- Core math: lib/points.js (tested — see Site/tests) ----------
+const { REGION_FLIGHTS, STYLE_RATES, estimate, parsePoints, periodInfo } = HubMath;
+
 const SUPA_URL = "https://tbxhnhahisuahlpbexqj.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieGhuaGFoaXN1YWhscGJleHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NDk2MTksImV4cCI6MjA5OTEyNTYxOX0.6EDg84Nx9nXkUxO4IUjC7EY_Wq5ECoufxqL8a2ZkQEs";
 const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -649,8 +662,6 @@ async function setStatus(id, status){ await sb.from("trips").update({ status, up
 async function delTrip(id){ if (confirm("Remove this trip?")) { await sb.from("trips").delete().eq("id", id); loadAll(); } }
 
 // ---------- Add Trip (estimator) ----------
-const REGION_FLIGHTS = { domestic:[300,25,800,50,"UR portal or United",["UR","United"]], mexico:[450,35,1400,70,"United or UR→Aeroplan",["United","UR"]], europe:[900,60,3500,110,"MR/UR→Flying Blue or Virgin; Iberia off-peak",["MR","UR"]], asia:[1100,70,4200,85,"MR→ANA (75–85k RT biz)",["MR"]], southam:[800,60,2800,126,"MR→LifeMiles (63k/leg, no surcharges)",["MR"]], oceania:[1400,80,5500,160,"MR/UR→Aeroplan",["MR","UR"]], africa:[1200,80,4500,140,"MR→Aeroplan or Flying Blue",["MR"]] };
-const STYLE_RATES = { budget:[45,30,20], mid:[140,70,60], comfort:[300,150,120] };
 const SUGGESTIONS = [
   { dest:"Japan Alps + Tokyo", region:"asia", days:"12", cabin:"biz", style:"mid", anchor:"Kamikochi hut season May–Oct", why:"THE MR redemption: ANA RT biz 75–85k. Trekking + city, work-week compatible." },
   { dest:"Hyatt ski weekend (Vail/Beaver Creek)", region:"domestic", days:"4", cabin:"econ", style:"comfort", anchor:"Transfer UR→Hyatt BEFORE Sep 30", why:"Uses the expiring 1:1 Hyatt transfer — drive from Denver." },
@@ -676,20 +687,9 @@ function tripData(){
     cabin: document.getElementById("t-cabin").value, style: document.getElementById("t-style").value,
     anchor: document.getElementById("t-anchor").value.trim(), notes: document.getElementById("t-notes").value.trim() };
 }
-function estimate(t){
-  const f = REGION_FLIGHTS[t.region], s = STYLE_RATES[t.style];
-  const flightCash = (t.cabin === "biz" ? f[2] : f[0]) * t.pax;
-  const flightPts = (t.cabin === "biz" ? f[3] : f[1]) * 1000 * t.pax;
-  const rooms = Math.ceil(t.pax/2);
-  const lodging = s[0] * rooms * t.days, food = s[1] * t.pax * t.days, act = s[2] * t.pax * t.days;
-  const ground = lodging + food + act;
-  return { flightCash, flightPts, ground, allCash: flightCash + ground, path: f[4], progs: f[5],
-    rooms, lodging, food, act, perFlight: (t.cabin === "biz" ? f[2] : f[0]), perPts: (t.cabin === "biz" ? f[3] : f[1]), rates: s };
-}
 function payOptions(t, e){
   const b = myBalances();
-  const effCash = e.flightCash * 0.9; // paying cash on Platinum earns 5x MR ≈ 10% back
-  const cpp = effCash / e.flightPts * 100;
+  const cpp = HubMath.cpp(e.flightCash, 0, e.flightPts, true); // platinum offset: cash earns 5x MR
   const vcolor = cpp >= 2 ? "#b2543a" : cpp >= 1.5 ? "#a15c00" : "#256a37";
   const vlabel = cpp >= 2 ? "🎯 points win" : cpp >= 1.5 ? "🤔 borderline" : "💵 cash wins";
   const mrEarn = Math.round(e.flightCash * 5 / 1000);
@@ -912,14 +912,7 @@ async function askNow(){
   await loadAll(); focusChat();
 }
 
-// ---------- Credits ----------
-function periodInfo(kind){
-  const n = new Date(), y = n.getFullYear(), m = n.getMonth();
-  if (kind === "month") return { id: `${y}-${String(m+1).padStart(2,"0")}`, end: new Date(y, m+1, 0), start: new Date(y, m, 1), label: "this month" };
-  if (kind === "quarter") { const q = Math.floor(m/3); return { id: `${y}-Q${q+1}`, end: new Date(y, q*3+3, 0), start: new Date(y, q*3, 1), label: `Q${q+1}` }; }
-  if (kind === "half") { const h = m < 6 ? 0 : 1; return { id: `${y}-H${h+1}`, end: new Date(y, h?12:6, 0), start: new Date(y, h?6:0, 1), label: h ? "2nd half" : "1st half" }; }
-  return { id: `${y}`, end: new Date(y, 12, 0), start: new Date(y, 0, 1), label: `${y}` };
-}
+// ---------- Credits (periodInfo from HubMath) ----------
 const CREDITS = [
   { g: "Monthly", kind: "month", items: [["uber","Uber Cash — Platinum",15,35],["ent","Digital entertainment — Platinum",25],["disney","Disney Bundle — BCP",10],["doordash","DoorDash non-restaurant — CSP",10]] },
   { g: "Quarterly", kind: "quarter", items: [["resy","Resy — Platinum",100],["lulu","Lululemon — Platinum",75]] },
@@ -955,13 +948,12 @@ async function toggleState(domain, key, val){
 // ---------- Points vs Cash ----------
 function calcVerdict(){
   const cash = num("c-cash"), fees = num("c-fees");
-  const raw = (document.getElementById("c-pts").value||"").trim().replace(/[$,]/g,"");
-  const pts = (parseFloat(raw)||0) * (/k\s*$/i.test(raw) ? 1000 : 1);
+  const pts = parsePoints(document.getElementById("c-pts").value);
   const bal = parseFloat(document.getElementById("c-cur").value) || 0;
   const isPlat = document.getElementById("c-plat").checked;
   const el = document.getElementById("c-result");
   if (!cash || !pts) { el.innerHTML = '<div class="meta">Enter prices for a verdict.</div>'; return; }
-  const cpp = ((isPlat ? cash*0.9 : cash) - fees) / pts * 100;
+  const cpp = HubMath.cpp(cash, fees, pts, isPlat);
   const pct = Math.round(pts/bal*100);
   let v, c, why;
   if (cpp < 1.5) { v = "💵 PAY CASH"; c = "#256a37"; why = `${cpp.toFixed(2)}¢/pt — below your 1.5¢ floor. Keep the points.`; }
@@ -1044,8 +1036,7 @@ async function saveProfile(){
     .concat(document.getElementById("p-cardcustom").value.split(",").map(s => s.trim()).filter(Boolean));
   const balances = {};
   PROGRAMS.forEach(pr => {
-    const raw = (document.getElementById("pb-" + pr)?.value || "").replace(/[,$\s]/g, "");
-    const v = Math.round(parseFloat(raw) * (/k$/i.test(raw) ? 1000 : 1)) || 0;
+    const v = parsePoints(document.getElementById("pb-" + pr)?.value);
     if (v) balances[pr] = v;
   });
   let ical = document.getElementById("p-ical").value.trim();
@@ -1254,8 +1245,7 @@ function renderRedemptions(){
 async function logRedemption(){
   if (!requireOnline()) return;
   const label = document.getElementById("r-label").value.trim();
-  const raw = document.getElementById("r-points").value.trim().replace(/[$,]/g,"");
-  const points = Math.round((parseFloat(raw) || 0) * (/k\s*$/i.test(raw) ? 1000 : 1));
+  const points = parsePoints(document.getElementById("r-points").value);
   if (!label || !points) return toast("Need a description and points used");
   const program = document.getElementById("r-program").value;
   const b = DB.state.balances || {};
