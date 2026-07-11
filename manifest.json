@@ -1,11 +1,16 @@
 {
-  "name": "Trips / Travel / Rewards Hub",
+  "id": "/",
+  "name": "Trips Hub — Travel & Rewards",
   "short_name": "Trips Hub",
+  "description": "Plan trips together, know which card to swipe, and see what your points can actually buy. Shared trip planning with a personal rewards brain and built-in AI travel assistant.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f7f6f3",
   "theme_color": "#b2543a",
+  "categories": ["travel", "finance", "productivity"],
   "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Trips Hub</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", sans-serif; background: #f7f6f3; color: #1a1a1a; max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; line-height: 1.6; }
+  h1 { font-size: 26px; } h2 { font-size: 18px; margin-top: 28px; }
+  .meta { color: #666; font-size: 14px; }
+  a { color: #2a4d8f; }
+</style>
+</head>
+<body>
+<h1>✈️ Trips Hub — Privacy Policy</h1>
+<p class="meta">Effective July 10, 2026 · Contact: holdenstirling@gmail.com</p>
+
+<p>Trips Hub is a private, invite-only travel planning app operated by Holden Ottolini. This policy explains what data the app handles and how.</p>
+
+<h2>What we collect</h2>
+<p>Only what you enter: your email address (for sign-in), display name, home airport, travel preferences, the credit cards you choose to select from a list (card <em>names</em> only — never card numbers, logins, or financial credentials), approximate loyalty points balances you type in, an optional calendar feed URL you provide, and content you add to the shared space (trips, events, tasks, chat messages, links).</p>
+
+<h2>How it's stored and protected</h2>
+<p>Data is stored in a Supabase (PostgreSQL) database with row-level security: your personal setup — cards, balances, calendar URL — is readable only by your own signed-in account, enforced at the database layer. No one else, including the operator, can query it through the app. Shared trip content is visible to the small group of approved members. Sign-in uses passwordless magic links; we never store passwords.</p>
+
+<h2>Calendar linking</h2>
+<p>If you paste a calendar feed URL, the server fetches only that URL, only when you use the app, returns upcoming events to your device, and does not store the events.</p>
+
+<h2>AI chat</h2>
+<p>The built-in travel assistant sends your chat messages, your own setup (cards, balances, airport), and shared trip details to Anthropic's Claude API to generate answers. Chat messages are stored so the conversation persists. Don't paste sensitive information into chat.</p>
+
+<h2>Third-party services</h2>
+<p>Supabase (database and authentication), Vercel (hosting), Anthropic (AI chat), and Gmail SMTP (transactional email such as sign-in links and approval notices). No advertising, no analytics trackers, no sale or sharing of data with anyone.</p>
+
+<h2>Your data, your control</h2>
+<p>In ⚙️ My Setup you can download everything you've entered as JSON, or delete your personal setup data instantly. For full account deletion (sign-in identity and all contributions), email holdenstirling@gmail.com and it will be removed within 7 days.</p>
+
+<h2>Children</h2>
+<p>The app is not directed at children under 13 and access is by personal invitation only.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the date above will be updated and members notified in-app.</p>
+</body>
+</html>
