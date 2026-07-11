@@ -203,6 +203,7 @@
 <div id="today-strip"></div>
 
 <div id="setup" class="panel">
+  <div id="setup-welcome"></div>
   <div class="card hero"><h3>⚙️ Make the Hub yours</h3><div class="meta" style="color:#bbb">Your cards, points, and calendar — private to you. The Which-card picker, trip estimator, and rewards views personalize from what you enter here.</div></div>
   <div class="group-title">👤 Basics</div>
   <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -222,6 +223,11 @@
   </div>
   <button class="btn" style="margin-top:12px;width:100%" onclick="saveProfile()">Save my setup</button>
   <div class="meta" style="margin-top:8px">🔒 Everything on this screen is locked to your login by row-level security — other members (including Holden) can't read it.</div>
+  <div class="group-title" style="margin-top:16px">Your data, your call</div>
+  <div class="card" style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn" style="background:#fff;color:#1a1a1a;border:1px solid #e5e1d8" onclick="exportMyData()">⬇️ Download my data</button>
+    <button class="del" onclick="deleteMyData()">🗑 Delete my setup data</button>
+  </div>
 </div>
 
 <div id="trips" class="panel active"><div class="empty">Loading…</div></div>
@@ -439,7 +445,7 @@ async function showRequestAccess(email){
   const existing = req && req[0];
   document.getElementById("login").style.display = "block";
   document.getElementById("login").innerHTML = existing
-    ? `<div class="card"><h3>✈️ Hub access ${existing.status === "pending" ? "requested" : existing.status}</h3><div class="meta" style="margin-top:8px">${existing.status === "pending" ? "Holden gets notified in his next daily scan — check back after he approves." : "Ask Holden directly if you think this is a mistake."}</div></div>`
+    ? `<div class="card"><h3>✈️ Hub access ${existing.status === "pending" ? "requested" : existing.status}</h3><div class="meta" style="margin-top:8px">${existing.status === "pending" ? "Holden's been pinged. You'll get an email at this address the moment he approves — then sign back in here and a 2-minute setup personalizes the app to your cards and points." : "Ask Holden directly if you think this is a mistake."}</div></div>`
     : `<div class="card"><h3>✈️ This is Holden's travel hub</h3><div class="meta" style="margin:8px 0 12px">You're signed in as ${esc(email)}, but not a member yet. Request access and Holden will approve you.</div>
        <input type="text" id="req-name" placeholder="Your name" style="width:100%;margin-bottom:8px">
        <button class="btn" style="width:100%" onclick="requestAccess('${esc(email)}')">Request access</button></div>`;
@@ -490,11 +496,10 @@ async function loadAll(){
     if (h1) h1.textContent = "✈️ Trips Hub";
     if (localStorage.getItem("hubtab") && !document.querySelector(`.tab[data-p="${localStorage.getItem("hubtab")}"]`)) localStorage.setItem("hubtab", "trips");
   }
-  // first sign-in: ask new members for a display name
-  const meRow = DB.users.find(x => x.email === ME);
-  if (meRow && !meRow.name) {
-    const n = (window.prompt("Welcome to the Hub! What name should show on your contributions?") || "").trim();
-    if (n) { await sb.from("allowed_users").update({ name: n }).eq("email", ME); meRow.name = n; }
+  // first sign-in for members without a profile: route into guided setup
+  if (ME !== OWNER && !PROFILE && !sessionStorage.getItem("setupNudged")) {
+    sessionStorage.setItem("setupNudged", "1");
+    setTimeout(() => goTab("setup"), 400);
   }
   DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
   const b = myBalances();
@@ -989,7 +994,37 @@ function myBalances(){
   if (ME === OWNER) return DB.state.balances || {};
   return (PROFILE && PROFILE.balances) || {};
 }
+function exportMyData(){
+  const mine = {
+    profile: PROFILE,
+    my_trips: DB.trips.filter(t => t.created_by === ME),
+    my_events: DB.events.filter(e => e.created_by === ME),
+    my_todos: (DB.todos || []).filter(t => t.created_by === ME),
+    my_messages: DB.messages.filter(m => m.created_by === ME),
+    exported: new Date().toISOString()
+  };
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(mine, null, 2)], { type: "application/json" }));
+  a.download = "trips-hub-my-data.json";
+  a.click();
+}
+async function deleteMyData(){
+  if (!requireOnline()) return;
+  if (!confirm("Delete your saved setup (cards, balances, calendar link)? Trips and events you added to the shared space stay unless you remove them individually.")) return;
+  await sb.from("user_profiles").delete().eq("email", ME);
+  PROFILE = null; MYCAL = null;
+  await loadAll();
+  toast("Your setup data is deleted");
+}
 function renderSetup(){
+  const w = document.getElementById("setup-welcome");
+  if (w) w.innerHTML = (ME !== OWNER && !PROFILE)
+    ? `<div class="card" style="border:2px solid #b2543a"><h3>👋 Welcome${DB.users.find(x=>x.email===ME)?.name ? ", " + esc(DB.users.find(x=>x.email===ME).name) : ""}! Two minutes to set up:</h3>
+       <div class="meta" style="margin-top:6px"><b>1.</b> Name + home airport below</div>
+       <div class="meta"><b>2.</b> Tap the cards in your wallet</div>
+       <div class="meta"><b>3.</b> Enter your points balances (roughly is fine) → <b>Save</b></div>
+       <div class="meta" style="margin-top:6px">Then the whole app speaks your wallet: which card to swipe, what your points buy, trip math against your balances, and an AI travel chat that knows your setup. All of it private to you.</div></div>`
+    : "";
   const p = PROFILE || {};
   const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
   set("p-name", p.name); set("p-airport", p.home_airport); set("p-cabin", p.cabin_pref || "econ"); set("p-ical", p.ical_url);
