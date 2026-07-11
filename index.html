@@ -171,11 +171,12 @@
 
 <div id="login" style="display:none">
   <div class="card">
-    <h3>✈️ Trips / Travel / Rewards Hub</h3>
-    <div class="meta" style="margin:8px 0 12px">Private hub — sign in with a magic link.</div>
-    <input type="email" id="login-email" placeholder="your@email.com" inputmode="email" autocapitalize="none" autocomplete="email" style="width:100%;margin-bottom:8px" onkeydown="if(event.key==='Enter')sendLink()">
-    <button class="btn" style="width:100%" onclick="sendLink()">Email me a sign-in link</button>
+    <h3>✈️ Trips Hub</h3>
+    <div class="meta" style="margin:8px 0 12px">Plan trips together · know which card to swipe · see what your points can buy. No passwords — we email you a sign-in link.</div>
+    <input type="email" id="login-email" placeholder="your@email.com" inputmode="email" autocapitalize="none" autocomplete="email" autofocus style="width:100%;margin-bottom:8px" onkeydown="if(event.key==='Enter')sendLink()">
+    <button class="btn" id="login-btn" style="width:100%" onclick="sendLink()">Email me a sign-in link</button>
     <div class="meta" id="login-msg" style="margin-top:10px"></div>
+    <div class="meta" style="margin-top:12px;border-top:1px solid #f0ede7;padding-top:10px">First time? Sign in and you can request access — Holden approves, you get an email, and a 2-minute setup makes the app yours.</div>
   </div>
 </div>
 
@@ -434,8 +435,14 @@ function setSync(t){ document.getElementById("sync-status").textContent = t; }
 // ---------- Auth ----------
 async function sendLink(){
   const email = document.getElementById("login-email").value.trim();
+  if (!/.+@.+\..+/.test(email)) { document.getElementById("login-msg").textContent = "That doesn't look like an email address — double-check it?"; return; }
+  const btn = document.getElementById("login-btn");
+  btn.disabled = true; btn.textContent = "Sending…";
   const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
-  document.getElementById("login-msg").textContent = error ? ("Error: " + error.message) : "✉️ Link sent — check your email, then return here.";
+  btn.disabled = false; btn.textContent = "Email me a sign-in link";
+  document.getElementById("login-msg").innerHTML = error
+    ? ("Error: " + esc(error.message))
+    : "✉️ <b>Link sent to " + esc(email) + "</b> — open it on this device. Not there in a minute? Check spam, or tap the button to resend.";
 }
 async function boot(){
   const { data: { session } } = await sb.auth.getSession();
@@ -980,7 +987,9 @@ const CARD_CATALOG = {
   amex_bce: { name: "Amex Blue Cash Everyday", cats: { groceries: [3, "3% cash (US)"], gas: [3, "3%"], online: [3, "3% online retail"] } },
   wf_active: { name: "WF Active Cash / flat 2%", cats: { everything: [2, "2% cash"] } }
 };
-const PROGRAMS = ["MR","UR","C1","TYP","United","Delta","AA","Alaska","Southwest","Hyatt","Marriott","Hilton","Bilt"];
+const PROGRAMS = ["MR","UR","C1","TYP","Bilt","United","Delta","AA","Alaska","Southwest","Hyatt","Marriott","Hilton"];
+const CARD_PROGRAMS = { amex_platinum: "MR", amex_gold: "MR", csp: "UR", csr: "UR", freedom_unlimited: "UR", venture_x: "C1", citi_strata: "TYP", bilt: "Bilt" };
+const TRAVEL_PROGRAMS = ["United","Delta","AA","Alaska","Southwest","Hyatt","Marriott","Hilton"];
 const CAT_LABELS = { dining: "🍽️ Dining", groceries: "🛒 Groceries", flights: "✈️ Flights", hotels: "🏨 Hotels", travel: "🚆 Other travel", gas: "⛽ Gas", streaming: "📺 Streaming", drugstores: "💊 Drugstores", amazon: "📦 Amazon", rent: "🏠 Rent", online: "🛍️ Online", everything: "🧾 Everything else" };
 function myBalances(){
   if (ME === OWNER) return DB.state.balances || {};
@@ -1012,9 +1021,9 @@ function renderSetup(){
   const w = document.getElementById("setup-welcome");
   if (w) w.innerHTML = (ME !== OWNER && !PROFILE)
     ? `<div class="card" style="border:2px solid #b2543a"><h3>👋 Welcome${DB.users.find(x=>x.email===ME)?.name ? ", " + esc(DB.users.find(x=>x.email===ME).name) : ""}! Two minutes to set up:</h3>
-       <div class="meta" style="margin-top:6px"><b>1.</b> Name + home airport below</div>
-       <div class="meta"><b>2.</b> Tap the cards in your wallet</div>
-       <div class="meta"><b>3.</b> Enter your points balances (roughly is fine) → <b>Save</b></div>
+       <div class="meta" style="margin-top:6px"><span id="st1">▫️</span> <b>1.</b> Name + home airport below</div>
+       <div class="meta"><span id="st2">▫️</span> <b>2.</b> Tap the cards in your wallet</div>
+       <div class="meta"><span id="st3">▫️</span> <b>3.</b> Enter your points balances (roughly is fine) → <b>Save</b></div>
        <div class="meta" style="margin-top:6px">Then the whole app speaks your wallet: which card to swipe, what your points buy, trip math against your balances, and an AI travel chat that knows your setup. All of it private to you.</div></div>`
     : "";
   const p = PROFILE || {};
@@ -1022,22 +1031,52 @@ function renderSetup(){
   set("p-name", p.name); set("p-airport", p.home_airport); set("p-cabin", p.cabin_pref || "econ"); set("p-ical", p.ical_url);
   const mine = new Set((p.cards || []).filter(c => CARD_CATALOG[c]));
   document.getElementById("p-cards").innerHTML = Object.entries(CARD_CATALOG).map(([k, c]) =>
-    `<button class="wc-chip ${mine.has(k) ? "active" : ""}" onclick="this.classList.toggle('active')" data-card="${k}">${c.name}</button>`).join("");
+    `<button class="wc-chip ${mine.has(k) ? "active" : ""}" onclick="this.classList.toggle('active');renderBalanceFields();updateSetupSteps()" data-card="${k}">${c.name}</button>`).join("");
   set("p-cardcustom", (p.cards || []).filter(c => !CARD_CATALOG[c]).join(", "));
-  const b = p.balances || {};
-  document.getElementById("p-balances").innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">` +
-    PROGRAMS.map(pr => `<div><div class="meta" style="margin-bottom:2px">${pr}</div><input type="text" id="pb-${pr}" placeholder="0" value="${b[pr] ? b[pr].toLocaleString() : ""}"></div>`).join("") + `</div>
-    <div class="meta" style="margin-top:8px">Points only — never enter card numbers or logins here.</div>`;
-  if (ME === OWNER) document.getElementById("p-balances").innerHTML += `<div class="meta" style="margin-top:6px">ℹ️ Your MR/UR/United sync automatically from AwardWallet — entries here are extra programs.</div>`;
+  renderBalanceFields();
+  updateSetupSteps();
+}
+function renderBalanceFields(){
+  const saved = (PROFILE && PROFILE.balances) || {};
+  const typed = {};
+  PROGRAMS.forEach(pr => { const el = document.getElementById("pb-" + pr); if (el && el.value) typed[pr] = el.value; });
+  const val = pr => typed[pr] ?? (saved[pr] ? saved[pr].toLocaleString() : "");
+  const selCards = [...document.querySelectorAll("#p-cards .wc-chip.active")].map(x => x.dataset.card);
+  const cardProgs = [...new Set(selCards.map(k => CARD_PROGRAMS[k]).filter(Boolean))];
+  const field = pr => `<div><div class="meta" style="margin-bottom:2px">${pr}</div><input type="text" id="pb-${pr}" placeholder="e.g. 85k" inputmode="text" value="${esc(val(pr))}"></div>`;
+  const grid = inner => `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">${inner}</div>`;
+  const travelFilled = TRAVEL_PROGRAMS.filter(pr => val(pr)).length;
+  document.getElementById("p-balances").innerHTML =
+    (cardProgs.length
+      ? `<div class="meta" style="margin-bottom:6px">Point programs from your cards:</div>` + grid(cardProgs.map(field).join(""))
+      : `<div class="meta">👆 Tap your cards above — the matching points programs appear here automatically.</div>`)
+    + `<details style="margin-top:12px" ${travelFilled ? "open" : ""}><summary class="meta" style="cursor:pointer;font-weight:600">✈️ Airline & hotel programs ${travelFilled ? `(${travelFilled} filled)` : "— optional"}</summary>
+       <div style="margin-top:8px">${grid(TRAVEL_PROGRAMS.map(field).join(""))}</div></details>
+    <div class="meta" style="margin-top:8px">Rough numbers are fine — "85k", "85,000", and "$85k" all work. Points only; never card numbers or logins.</div>`
+    + (ME === OWNER ? `<div class="meta" style="margin-top:6px">ℹ️ Your MR/UR/United sync automatically from AwardWallet — entries here are extra programs.</div>` : "");
+}
+function updateSetupSteps(){
+  const w = document.getElementById("setup-welcome");
+  if (!w || !w.innerHTML) return;
+  const done1 = !!document.getElementById("p-name")?.value.trim();
+  const done2 = !!document.querySelector("#p-cards .wc-chip.active");
+  const done3 = PROGRAMS.some(pr => document.getElementById("pb-" + pr)?.value.trim());
+  [["st1", done1], ["st2", done2], ["st3", done3]].forEach(([id, d]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = d ? "✅" : "▫️";
+  });
 }
 async function saveProfile(){
   if (!requireOnline()) return;
   const cards = [...document.querySelectorAll("#p-cards .wc-chip.active")].map(x => x.dataset.card)
     .concat(document.getElementById("p-cardcustom").value.split(",").map(s => s.trim()).filter(Boolean));
-  const balances = {};
+  // merge: fields not currently rendered (e.g. card deselected) keep their saved value
+  const balances = { ...((PROFILE && PROFILE.balances) || {}) };
   PROGRAMS.forEach(pr => {
-    const v = parsePoints(document.getElementById("pb-" + pr)?.value);
-    if (v) balances[pr] = v;
+    const el = document.getElementById("pb-" + pr);
+    if (!el) return;
+    const v = parsePoints(el.value);
+    if (v) balances[pr] = v; else delete balances[pr];
   });
   let ical = document.getElementById("p-ical").value.trim();
   if (ical && !/^https:\/\//.test(ical)) { toast("Calendar link must start with https://"); return; }
@@ -1558,6 +1597,7 @@ DRAFT_FIELDS.forEach(k => {
   if (el) { el.addEventListener("input", saveDraft); el.addEventListener("change", saveDraft); }
 });
 restoreDraft();
+document.getElementById("setup").addEventListener("input", updateSetupSteps);
 
 document.querySelectorAll(".sub-tab").forEach(t => t.addEventListener("click", () => {
   document.querySelectorAll(".sub-tab").forEach(x => x.classList.remove("active"));
