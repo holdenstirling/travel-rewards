@@ -571,7 +571,7 @@ async function loadAll(){
  localStorage.setItem("hubcache", JSON.stringify(DB));
  // Friend app: same backend, cleaner surface — Holden-specific tabs removed
  if (ME && ME !== OWNER) {
- ["credits","status","playbook","packing"].forEach(p => document.querySelector(`.tab[data-p="${p}"]`)?.remove());
+ ["status","playbook","packing"].forEach(p => document.querySelector(`.tab[data-p="${p}"]`)?.remove());
  const h1 = document.querySelector("h1");
  if (h1) h1.textContent = "Trips Hub";
  if (localStorage.getItem("hubtab") && !document.querySelector(`.tab[data-p="${localStorage.getItem("hubtab")}"]`)) localStorage.setItem("hubtab", "trips");
@@ -722,10 +722,19 @@ function tripDetail(id){
  <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">Ask</button>
  ${pack ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goPack('${pack}')">Packing</button>` : ""}
  ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="logForTrip('${t.id}')">Log booking</button>` : ""}
- <button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">Upcoming</button>
- </div></div>
+ <button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">Calendar</button>
+ <button class="btn alt" style="padding:6px 12px;font-size:12px" onclick="requestScan('${t.id}')">Request price scan</button>
+ </div>
+ <div class="meta" style="margin-top:6px">Price scan: the overnight review searches current fares and hotel rates for this trip and posts what it finds in Chat.</div></div>
  <div class="meta" style="margin:10px 0"><span class="xlink" onclick="renderTrips()">← all trips</span></div>`;
  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+async function requestScan(id){
+ if (!requireOnline()) return;
+ const t = DB.trips.find(x => x.id === id);
+ if (!t) return;
+ await sb.from("messages").insert({ sender: "holden", created_by: ME, body: `[PRICE SCAN] ${t.dest} (${t.when_text || "flexible"}, ${t.pax} pax, ${t.cabin === "biz" ? "business" : "economy"}) requested by ${nameOf(ME)}. Home airport: ${PROFILE?.home_airport || "DEN"}. Find current best cash fares and 2-3 well-reviewed hotel options with rates; reply in chat.` });
+ toast("Requested — results in Chat by 9am");
 }
 async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
 async function delTrip(id){
@@ -993,8 +1002,33 @@ const CREDITS = [
  { g: "Semi-annual", kind: "half", items: [["fhr","FHR/THC hotel — Platinum",300]] },
  { g: "Annual", kind: "year", items: [["airline","Airline fee (United) — Platinum",200],["csphotel","Chase Travel hotel — CSP (~Jan 24)",100]] }
 ];
+async function toggleBenefit(key, val){
+ if (!requireOnline() || !PROFILE) { if (!PROFILE) toast("Save your Settings first"); return; }
+ PROFILE.benefits = PROFILE.benefits || {};
+ if (val) PROFILE.benefits[key] = true; else delete PROFILE.benefits[key];
+ await sb.from("user_profiles").upsert({ email: ME, benefits: PROFILE.benefits });
+ renderCredits();
+}
 function renderCredits(){
  const el = document.getElementById("credits");
+ if (ME !== OWNER) {
+   // Personal benefits checklist built from the member's own cards
+   const mine = (PROFILE?.cards || []).filter(k => CARD_BENEFITS[k]);
+   if (!mine.length) { el.innerHTML = '<div class="page-desc">Recurring credits that come with your cards — check them off as you use them each cycle.</div><div class="empty">Select your cards in Settings and your benefits checklist appears here.</div>'; return; }
+   const used = PROFILE?.benefits || {};
+   let html = '<div class="page-desc">Recurring credits that come with your cards. Check each one off as you use it — they reset on their cycle and do not roll over.</div>';
+   mine.forEach(k => {
+     const period = { month: periodInfo("month"), quarter: periodInfo("quarter"), half: periodInfo("half"), year: periodInfo("year") };
+     html += `<div class="group-title">${CARD_CATALOG[k].name}</div><div class="card">`;
+     CARD_BENEFITS[k].forEach(([bk, label, cycle]) => {
+       const p = period[cycle], key = `${k}_${bk}_${p.id}`, done = !!used[key];
+       html += `<div class="row"><input type="checkbox" ${done ? "checked" : ""} onchange="toggleBenefit('${key}', this.checked)"><div class="nm"><span class="${done ? "used" : ""}">${label}</span><br><span style="color:#8a8578;font-size:11.5px">resets in ${daysUntil(p.end)} days (${cycle}ly)</span></div></div>`;
+     });
+     html += "</div>";
+   });
+   el.innerHTML = html;
+   return;
+ }
  const checked = DB.state.credits || {};
  let html = "", left = 0;
  CREDITS.forEach(grp => {
@@ -1055,6 +1089,32 @@ const CARD_CATALOG = {
  wf_active: { name: "WF Active Cash / flat 2%", cats: { everything: [2, "2% cash"] } }
 };
 const PROGRAMS = ["MR","UR","C1","TYP","Bilt","United","Delta","AA","Alaska","Southwest","Hyatt","Marriott","Hilton"];
+// Recurring benefits per card — powers each member's personal benefits checklist
+const CARD_BENEFITS = {
+ amex_platinum: [["airline","$200 airline fee credit","year"],["uber","$15 Uber Cash","month"],["ent","$25 digital entertainment credit","month"],["fhr","$300 hotel credit (FHR/THC)","half"],["resy","$100 Resy credit","quarter"],["lulu","$75 Lululemon credit","quarter"]],
+ amex_gold: [["dine","$10 dining credit (Grubhub/partners)","month"],["guber","$10 Uber Cash","month"],["gresy","$50 Resy credit","half"]],
+ csp: [["hotel","$50 hotel credit (Chase Travel)","year"],["dd","$10 DoorDash non-restaurant credit","month"]],
+ csr: [["travel","$300 travel credit","year"],["stubhub","StubHub / dining credits (check app)","year"]],
+ venture_x: [["portal","$300 Capital One Travel credit","year"],["anniv","10,000 anniversary miles","year"]],
+ citi_strata: [["chotel","$100 hotel benefit ($500+ booking)","year"]],
+ bilt: [["rentday","Rent Day: double points on the 1st","month"]],
+ bcp: [["disney","$10 Disney Bundle credit (enroll first)","month"]]
+};
+const PROGRAM_GUIDE = {
+ MR: "Transfers to ANA (Japan business 75–85k round trip), LifeMiles (South America 63k/leg, no surcharges), Flying Blue and Virgin (Europe from 34–60k one way). Never redeem as statement credit (0.6 cents).",
+ UR: "Guaranteed floor of 1.25 cents in the Chase portal. Transfers to Hyatt (often 2+ cents/pt), Flying Blue, Aeroplan.",
+ C1: "Portal floor of 1 cent. Transfers to Turkish (cheap domestic US awards) and Aeroplan.",
+ TYP: "Transfers to Turkish, Avianca LifeMiles, Flying Blue.",
+ Bilt: "Transfers to Hyatt, American, Turkish — strong for a no-fee card.",
+ United: "Book United and Star Alliance. No award chart; saver domestic round trips from ~25k.",
+ Delta: "Best on Delta flash sales; value averages ~1.2 cents.",
+ AA: "Web Specials and partner awards (Japan on JAL is the standout).",
+ Alaska: "Partner awards are the gem — Cathay, JAL long-haul.",
+ Southwest: "Fixed ~1.35 cents against Wanna Get Away fares; Companion Pass doubles it.",
+ Hyatt: "Consistently 2+ cents/pt. Category 1–4 hotels from 3.5–15k/night.",
+ Marriott: "Averages ~0.8 cents; look for hotels at 35k/night or less.",
+ Hilton: "Averages ~0.5 cents; fifth night free on award stays."
+};
 const CARD_PROGRAMS = { amex_platinum: "MR", amex_gold: "MR", csp: "UR", csr: "UR", freedom_unlimited: "UR", venture_x: "C1", citi_strata: "TYP", bilt: "Bilt" };
 const TRAVEL_PROGRAMS = ["United","Delta","AA","Alaska","Southwest","Hyatt","Marriott","Hilton"];
 const CAT_LABELS = { dining: "Dining", groceries: "Groceries", flights: "Flights", hotels: "Hotels", travel: "Other travel", gas: "Gas", streaming: "Streaming", drugstores: "Drugstores", amazon: "Amazon", rent: "Rent", online: "Online", everything: "Everything else" };
@@ -1119,7 +1179,8 @@ function renderBalanceFields(){
  : `<div class="meta">Tap your cards above — the matching points programs appear here automatically.</div>`)
  + `<details style="margin-top:12px" ${travelFilled ? "open" : ""}><summary class="meta" style="cursor:pointer;font-weight:600">Airline & hotel programs ${travelFilled ? `(${travelFilled} filled)` : "— optional"}</summary>
  <div style="margin-top:8px">${grid(TRAVEL_PROGRAMS.map(field).join(""))}</div></details>
- <div class="meta" style="margin-top:8px">Rough numbers are fine — "85k", "85,000", and "$85k" all work. Points only; never card numbers or logins.</div>`
+ <div class="meta" style="margin-top:8px">Rough numbers are fine — "85k", "85,000", and "$85k" all work. Points only; never card numbers or logins.</div>
+ <div class="meta" style="margin-top:6px">The overnight deal review uses your card list and home airport (never your balances) to flag deals relevant to you.</div>`
  + (ME === OWNER ? `<div class="meta" style="margin-top:6px">Your MR/UR/United sync automatically from AwardWallet — entries here are extra programs.</div>` : "");
 }
 function updateSetupSteps(){
@@ -1364,9 +1425,18 @@ function renderRewards(){
  const b = myBalances();
  const rows = Object.entries(b).map(([k, v]) =>
  `<div class="rw-row"><span><b>${esc(k)}</b></span><span class="rw-n">${v.toLocaleString()} · ≈ $${Math.round(v * 0.0125).toLocaleString()}–$${Math.round(v * 0.02).toLocaleString()}</span></div>`).join("");
- el.innerHTML = whichCardGeneric() + (rows
- ? `<div class="card"><h3>Your points, as travel value</h3>${rows}<div class="meta" style="margin-top:8px">Range = 1.25¢ (portal floor) to 2¢+ (good transfers). <span class="xlink" onclick="goTab('setup')">Update balances →</span></div></div>`
- : `<div class="card"><div class="meta">Add your points in <span class="xlink" onclick="goTab('setup')">My Setup</span> to see what they're worth and get personal trip math.</div></div>`);
+ const guided = Object.entries(b).map(([k, v]) =>
+ `<div style="padding:9px 0;border-bottom:1px solid #f0ede7"><div style="display:flex;justify-content:space-between;gap:10px"><b>${esc(k)}</b><span class="rw-n">${v.toLocaleString()} · $${Math.round(v * 0.0125).toLocaleString()}–$${Math.round(v * 0.02).toLocaleString()}</span></div><div class="meta" style="margin-top:2px">${PROGRAM_GUIDE[k] || ""}</div></div>`).join("");
+ const advice = [];
+ if (b.MR && b.UR) advice.push("MR and UR both transfer to Aeroplan, Flying Blue, and Virgin — combinable for one large premium award.");
+ if (b.UR) advice.push(`Your guaranteed floor: $${Math.round(b.UR * 0.0125).toLocaleString()} through the Chase portal, no award hunting required.`);
+ if (b.Marriott || b.Hilton) advice.push("Hotel points are worth the least per point — spend them before airline miles when either works.");
+ const totP = Object.values(b).filter(v => typeof v === "number").reduce((s, v) => s + v, 0);
+ el.innerHTML = whichCardGeneric() + (guided
+ ? `<div class="card"><h3>Your points portfolio</h3><div class="meta" style="margin-bottom:6px">${totP.toLocaleString()} points across ${Object.keys(b).length} program${Object.keys(b).length > 1 ? "s" : ""} — roughly $${Math.round(totP * 0.0125).toLocaleString()}–$${Math.round(totP * 0.02).toLocaleString()} of travel.</div>${guided}
+ ${advice.length ? `<div style="margin-top:10px;border-top:1px solid #f0ede7;padding-top:8px">${advice.map(a => `<div class="meta" style="margin-top:4px">${a}</div>`).join("")}</div>` : ""}
+ <div class="meta" style="margin-top:8px"><span class="xlink" onclick="goTab('setup')">Update balances</span> · ask the chat which program fits any specific trip.</div></div>`
+ : `<div class="card"><div class="meta">Add your points in <span class="xlink" onclick="goTab('setup')">Settings</span> to get a valuation of your portfolio and personal trip math.</div></div>`);
  return;
  }
  const b = DB.state.balances || {};
