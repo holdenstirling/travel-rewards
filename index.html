@@ -139,6 +139,53 @@
   .cd-input { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid #f0ede7; }
   .cd-input textarea { flex: 1; min-height: 44px; max-height: 90px; font-size: 16px; }
   @media (min-width: 760px) { #chat-drawer { left: auto; right: 20px; width: 420px; border-radius: 18px; bottom: 84px; } }
+  /* Global search */
+  #search-ov { position: fixed; inset: 0; background: rgba(20,18,16,.55); z-index: 60; display: none; }
+  #search-ov.open { display: block; }
+  .s-box { background: #fff; max-width: 560px; margin: 9vh auto 0; border-radius: 16px; padding: 14px; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+  .s-box input { width: 100%; font-size: 16px; padding: 10px 12px; }
+  #s-res { max-height: 52vh; overflow-y: auto; margin-top: 8px; }
+  .s-hit { padding: 9px 10px; border-radius: 10px; cursor: pointer; display: flex; gap: 10px; align-items: baseline; }
+  .s-hit:hover { background: #f4f1ea; }
+  .s-hit .sub { color: #8a8578; font-size: 12px; }
+  /* Trip pipeline stepper + covers */
+  .stepper { display: flex; gap: 4px; align-items: center; }
+  .step { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 4px 8px; font-size: 12px; cursor: pointer; opacity: .45; }
+  .step.sdone { opacity: 1; border-color: #b2543a55; background: #fdf3ec; }
+  .step.scur { opacity: 1; border-color: #b2543a; background: #b2543a; color: #fff; font-weight: 700; }
+  /* Skeleton loading */
+  .skel { background: #fff; border-radius: 14px; padding: 18px; margin-top: 14px; }
+  .skel div { height: 13px; border-radius: 7px; background: linear-gradient(90deg, #eee8dd 25%, #f7f3ea 50%, #eee8dd 75%); background-size: 200% 100%; animation: shim 1.1s infinite; margin-bottom: 10px; }
+  @keyframes shim { to { background-position: -200% 0; } }
+  /* Delight */
+  input[type="checkbox"] { accent-color: #b2543a; transition: transform .12s; }
+  input[type="checkbox"]:checked { transform: scale(1.15); }
+  .conf { position: fixed; top: -20px; z-index: 200; font-size: 22px; animation: fall 1.7s ease-in forwards; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(340deg); opacity: .7; } }
+  #hub-toast.show { pointer-events: auto; }
+  #hub-toast button { background: none; border: none; color: #f5b89f; font-weight: 700; margin-left: 10px; cursor: pointer; font-size: 13px; }
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    body { background: #171614; color: #e7e4de; }
+    h1 { color: #f2efe9; }
+    .card, .s-box, #chat-drawer, .skel { background: #211f1c; border: 1px solid #33302b; box-shadow: none; }
+    .card.hero, .today-strip, #today-strip .ts { border: none; }
+    .tabs { background: #171614; }
+    .tab, .icon-btn, .wc-chip, .step { background: #211f1c; color: #cfcbc2; border-color: #3c3933; }
+    .tab.active { background: #e7e4de; color: #171614; }
+    input, select, textarea { background: #2a2825; color: #e7e4de; border-color: #3c3933; }
+    .meta, .sub, .note, .empty, .s-hit .sub { color: #a09a8e; }
+    .group-title { color: #8f897d; }
+    .msg.claude, pre, code { background: #2a2825; color: #e7e4de; }
+    .wc-chip.active { background: #3a2b24; border-color: #b2543a; color: #f2efe9; }
+    .wc-ans { background: #1f2a20; border-color: #2e4030; }
+    .step.sdone { background: #3a2b24; }
+    .s-hit:hover { background: #2a2825; }
+    .row, .rw-row { border-color: #2c2a26; }
+    a, .xlink { color: #8ab0ff; }
+    .skel div { background: linear-gradient(90deg, #2a2825 25%, #34302a 50%, #2a2825 75%); background-size: 200% 100%; }
+    table, th, td { border-color: #33302b !important; }
+  }
   .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
   .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
   @media (max-width: 640px) {
@@ -184,7 +231,7 @@
 <div id="offline-banner">📴 Offline — showing last synced data (read-only)</div>
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
   <h1>✈️ Trips / Travel / Rewards Hub</h1>
-  <button class="icon-btn" title="Refresh" onclick="loadAll().then(()=>toast('Refreshed ✓'))">↻</button>
+  <div style="display:flex;gap:6px"><button class="icon-btn" title="Search (press /)" onclick="openSearch()">🔍</button><button class="icon-btn" title="Refresh" onclick="loadAll().then(()=>toast('Refreshed ✓'))">↻</button></div>
 </div>
 <div class="sub" id="header-sub">Amex Platinum · Sapphire Preferred · Freedom Unlimited · Prime Visa · Blue Cash Preferred · DEN</div>
 
@@ -232,7 +279,18 @@
   </div>
 </div>
 
-<div id="trips" class="panel active"><div class="empty">Loading…</div></div>
+<div id="install-nudge"></div>
+<div id="trips" class="panel active">
+  <div class="skel"><div style="width:45%"></div><div style="width:80%"></div><div style="width:65%"></div></div>
+  <div class="skel"><div style="width:55%"></div><div style="width:70%"></div></div>
+</div>
+
+<div id="search-ov" onclick="if(event.target===this)closeSearch()">
+  <div class="s-box">
+    <input type="text" id="s-in" placeholder="Search trips, events, tasks, links, chat…" oninput="runSearch()" onkeydown="if(event.key==='Escape')closeSearch()">
+    <div id="s-res"></div>
+  </div>
+</div>
 
 <div id="upcoming" class="panel">
   <div class="tabs" style="position:static;padding:0">
@@ -264,6 +322,14 @@
     <div style="display:flex;gap:8px"><input type="text" id="todo-input" placeholder="Add a to-do (travel or otherwise)" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('general')"><button class="btn" onclick="addTodo('general')">Add</button></div>
   </div>
   <div id="todo-list"></div>
+  <div class="group-title">🔗 Links & resources</div>
+  <div class="card"><div class="grid-res">
+    <label style="font-size:11px;color:#666">Label<br><input type="text" id="res-label" style="width:100%;margin-top:3px"></label>
+    <label style="font-size:11px;color:#666">URL<br><input type="text" id="res-url" placeholder="https://…" style="width:100%;margin-top:3px"></label>
+    <label style="font-size:11px;color:#666">Category<br><input type="text" id="res-cat" placeholder="e.g. Japan" style="width:100%;margin-top:3px"></label>
+    <button class="btn" onclick="addResource()">Add</button>
+  </div></div>
+  <div id="res-list"></div>
 </div>
 
 <div id="addtrip" class="panel">
@@ -381,14 +447,6 @@
   <div class="card" style="font-size:13.5px;line-height:1.6">
     1. Never transfer speculatively. 2. Check transfer bonuses first. 3. Pool FU → CSP. 4. Prime Visa ≠ UR. 5. Aeroplan takes MR + UR. 6. Rentals → CSP, decline CDW. 7. Flights → Platinum. 8. Cards ≠ mountain rescue insurance (ÖAV).
   </div>
-  <div class="group-title">🔗 Resources</div>
-  <div class="card"><div class="grid-res">
-    <label style="font-size:11px;color:#666">Label<br><input type="text" id="res-label" style="width:100%;margin-top:3px"></label>
-    <label style="font-size:11px;color:#666">URL<br><input type="text" id="res-url" placeholder="https://…" style="width:100%;margin-top:3px"></label>
-    <label style="font-size:11px;color:#666">Category<br><input type="text" id="res-cat" placeholder="e.g. Japan" style="width:100%;margin-top:3px"></label>
-    <button class="btn" onclick="addResource()">Add</button>
-  </div></div>
-  <div id="res-list"></div>
 </div>
 
 <div class="note">Dynamic Hub — data syncs across devices via Supabase and is shared with Claude. <span class="sync" id="sync-status"></span> <button class="del" onclick="sb.auth.signOut().then(()=>location.reload())">sign out</button></div>
@@ -534,7 +592,7 @@ async function loadAll(){
   const cur = document.getElementById("c-cur");
   const progs = ME === OWNER ? ["MR","UR","United"] : Object.keys(b);
   cur.innerHTML = progs.map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("") || '<option value="0">set balances in My Setup</option>';
-  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards(); renderToday(); renderSetup();
+  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards(); renderToday(); renderSetup(); renderInstallNudge();
   loadMyCal();
   updateChatBadge(); maybeRestoreTab();
   setSync("synced ✓ " + new Date().toLocaleTimeString());
@@ -589,6 +647,7 @@ function updateChatBadge(){
 
 // ---------- Trips ----------
 const ST_LABEL = { idea: "💭 idea", researching: "🔍 researching", dated: "📅 dated", booking: "🎯 booking", booked: "✅ booked" };
+const REGION_META = { domestic: { e: "🇺🇸", c: "#256a37" }, mexico: { e: "🌵", c: "#a15c00" }, europe: { e: "🇪🇺", c: "#2a4d8f" }, asia: { e: "🏯", c: "#b3261e" }, southam: { e: "🏔️", c: "#7a3423" }, oceania: { e: "🌊", c: "#0e7490" }, africa: { e: "🦁", c: "#8a5a00" }, other: { e: "✈️", c: "#8a8578" } };
 function renderTrips(){
   const el = document.getElementById("trips");
   if (!DB.trips.length) { el.innerHTML = '<div class="empty">No trips yet — add one!</div>'; return; }
@@ -604,13 +663,14 @@ function renderTrips(){
     const reds = (DB.redemptions || []).filter(r => r.trip && t.dest.toLowerCase().includes(r.trip.toLowerCase()));
     const pack = /europe/i.test(t.dest) ? "eu" : /patagonia/i.test(t.dest) ? "pat" : null;
     return `
-    <div class="card"><h3 style="cursor:pointer" onclick="tripDetail('${t.id}')">${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span>${openT ? ` <span class="pill warn">☑️ ${openT}</span>` : ""} <span class="xlink" style="font-weight:400">details →</span></h3>
+    <div class="card" style="border-top:5px solid ${(REGION_META[t.region] || REGION_META.other).c}"><h3 style="cursor:pointer" onclick="tripDetail('${t.id}')">${(REGION_META[t.region] || REGION_META.other).e} ${esc(t.dest)}${openT ? ` <span class="pill warn">☑️ ${openT}</span>` : ""} <span class="xlink" style="font-weight:400">details →</span></h3>
     <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}${t.est_cash ? ` <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>` : ""}</div>
     ${t.anchor ? `<div class="meta">⚓ ${esc(t.anchor)}</div>` : ""}
     ${t.created_by && t.created_by !== OWNER ? `<div class="meta">👥 added by ${esc(nameOf(t.created_by))}</div>` : ""}
     ${t.claude_notes ? `<div class="meta cnote" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${md(t.claude_notes)}</div>` : ""}
     ${reds.length ? `<div class="meta" style="margin-top:6px">📒 ${reds.length} redemption${reds.length>1?"s":""} logged (${reds.reduce((s,r)=>s+r.points,0).toLocaleString()} pts) — <span class="xlink" onclick="goTab('calc','redeem-section')">view →</span></div>` : ""}
-    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select onchange="setStatus('${t.id}', this.value)" style="font-size:12px">${Object.keys(ST_LABEL).map(s => `<option value="${s}" ${s===t.status?"selected":""}>${ST_LABEL[s]}</option>`).join("")}</select>
+    <div class="stepper" style="margin-top:10px">${Object.keys(ST_LABEL).map((s, si) => { const cur = Object.keys(ST_LABEL).indexOf(t.status); return `<button class="step ${si < cur ? "sdone" : ""} ${si === cur ? "scur" : ""}" title="${ST_LABEL[s]}" onclick="setStatus('${t.id}','${s}')">${si === cur ? ST_LABEL[s] : ST_LABEL[s].split(" ")[0]}</button>`; }).join("")}</div>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">💬 Ask</button>
     ${t.date_start ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">📅 Upcoming</button>` : ""}
     ${pack ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goPack('${pack}')">🎒 Packing</button>` : ""}
@@ -666,7 +726,12 @@ function tripDetail(id){
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
-async function delTrip(id){ if (confirm("Remove this trip?")) { await sb.from("trips").delete().eq("id", id); loadAll(); } }
+async function delTrip(id){
+  const row = DB.trips.find(t => t.id === id);
+  await sb.from("trips").delete().eq("id", id);
+  await loadAll();
+  undoBar(`Removed "${row?.dest || "trip"}"`, () => sb.from("trips").insert(row));
+}
 
 // ---------- Add Trip (estimator) ----------
 const SUGGESTIONS = [
@@ -1189,6 +1254,82 @@ function renderToday(){
   el.innerHTML = bits.length ? `<div class="ts">${bits.join("")}</div>` : "";
 }
 
+// ---------- Global search ----------
+function openSearch(){ document.getElementById("search-ov").classList.add("open"); const i = document.getElementById("s-in"); i.value = ""; document.getElementById("s-res").innerHTML = '<div class="meta" style="padding:8px">Type to search everything in the Hub.</div>'; i.focus(); }
+function closeSearch(){ document.getElementById("search-ov").classList.remove("open"); }
+window.__sActions = [];
+function runSearch(){
+  const q = document.getElementById("s-in").value.trim().toLowerCase();
+  const out = document.getElementById("s-res");
+  window.__sActions = [];
+  if (q.length < 2) { out.innerHTML = ""; return; }
+  const hits = [];
+  const add = (icon, label, sub, fn) => { if (hits.length < 20) { hits.push({ icon, label, sub, i: __sActions.length }); __sActions.push(fn); } };
+  const m = s => (s || "").toLowerCase().includes(q);
+  DB.trips.forEach(t => { if (m(t.dest) || m(t.notes) || m(t.anchor) || m(t.claude_notes)) add("✈️", t.dest, `trip · ${t.when_text || "flexible"}`, () => { goTab("trips"); tripDetail(t.id); }); });
+  (DB.events || []).forEach(e => { if (m(e.label) || m(e.notes) || m(e.location)) add("📅", e.label, `event · ${e.date}`, () => goTab("upcoming")); });
+  (DB.todos || []).forEach(t => { if (m(t.text)) add(t.done ? "✅" : "☑️", t.text.slice(0, 60), t.list === "general" ? "to-do" : "task on " + t.list.replace(/^(trip|ev|packing)_/, "$1 "), () => goTab(t.list === "general" || t.list.startsWith("packing") ? "todo" : "upcoming")); });
+  (DB.resources || []).forEach(r => { if (m(r.label) || m(r.url) || m(r.category)) add("🔗", r.label, "link · " + (r.category || ""), () => goTab("todo", "res-list")); });
+  DB.messages.slice(-60).forEach(msg => { if (m(msg.body)) add("💬", msg.body.slice(0, 64).replace(/\n/g, " "), (msg.sender === "claude" ? "claude" : nameOf(msg.created_by)) + " · " + new Date(msg.created_at).toLocaleDateString(), () => goTab("chat")); });
+  DB.constraints.forEach(c => { if (m(c.label) || m(c.notes)) add("🚫", c.label, "constraint", () => goTab("status")); });
+  out.innerHTML = hits.length
+    ? hits.map(h => `<div class="s-hit" onclick="closeSearch();__sActions[${h.i}]()"><span>${h.icon}</span><span style="flex:1">${esc(h.label)}<br><span class="sub">${esc(h.sub)}</span></span></div>`).join("")
+    : '<div class="meta" style="padding:8px">Nothing matches.</div>';
+}
+document.addEventListener("keydown", e => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "");
+  if (!typing && (e.key === "/" || ((e.metaKey || e.ctrlKey) && e.key === "k"))) { e.preventDefault(); openSearch(); }
+  if (e.key === "Escape") closeSearch();
+});
+
+// ---------- Install banner ----------
+let deferredInstall = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; renderInstallNudge(); });
+function renderInstallNudge(){
+  const el = document.getElementById("install-nudge");
+  if (!el) return;
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (standalone || localStorage.getItem("installDismissed")) { el.innerHTML = ""; return; }
+  const ios = /iphone|ipad/i.test(navigator.userAgent);
+  const mobile = ios || /android/i.test(navigator.userAgent);
+  if (!mobile) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="card" style="display:flex;gap:10px;align-items:center;margin-top:12px">
+    <span style="font-size:22px">📲</span>
+    <div style="flex:1;font-size:13px">${deferredInstall ? "<b>Install Trips Hub</b> — full-screen, works offline." : ios ? "<b>Add to your Home Screen:</b> tap <b>Share</b> (□↑) → <b>Add to Home Screen</b>." : "<b>Install:</b> browser menu ⋮ → <b>Add to Home screen</b>."}</div>
+    ${deferredInstall ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="deferredInstall.prompt();dismissInstall()">Install</button>` : ""}
+    <button class="del" onclick="dismissInstall()">✕</button></div>`;
+}
+function dismissInstall(){ localStorage.setItem("installDismissed", "1"); document.getElementById("install-nudge").innerHTML = ""; }
+
+// ---------- Undo-able deletes ----------
+function undoBar(msg, fn){
+  let t = document.getElementById("hub-toast");
+  if (!t) { t = document.createElement("div"); t.id = "hub-toast"; document.body.appendChild(t); }
+  window.__undoFn = fn;
+  t.innerHTML = esc(msg) + '<button onclick="__doUndo()">Undo</button>';
+  t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 6000);
+}
+async function __doUndo(){
+  const t = document.getElementById("hub-toast");
+  t.classList.remove("show");
+  if (window.__undoFn) { await window.__undoFn(); window.__undoFn = null; await loadAll(); toast("Restored ✓"); }
+}
+
+// ---------- Confetti ----------
+function confetti(){
+  const glyphs = ["🎉","✈️","🎊","⭐"];
+  for (let i = 0; i < 26; i++) {
+    const s = document.createElement("span");
+    s.className = "conf";
+    s.textContent = glyphs[i % glyphs.length];
+    s.style.left = Math.random() * 100 + "vw";
+    s.style.animationDelay = (Math.random() * 0.5) + "s";
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 2400);
+  }
+}
+
 // ---------- Cross-tab nav + rewards-first summary ----------
 function goTab(p, anchorId){
   const el = document.querySelector(`.tab[data-p="${p}"]`);
@@ -1348,7 +1489,9 @@ function renderPacking(){
   extras.forEach(t => { total++; if (t.done) done++; });
   if (extras.length) html += `<div class="group-title">Your added items</div><div class="card">` + extras.map(todoRow).join("") + "</div>";
   const pct = total ? Math.round(done/total*100) : 0;
-  el.innerHTML = `<div class="card hero"><h3>${done}/${total} packed (${pct}%)</h3><div class="bar" style="background:#444"><div style="width:${pct}%"></div></div></div>` + html;
+  if (pct === 100 && window.__lastPack !== undefined && window.__lastPack < 100) confetti();
+  window.__lastPack = pct;
+  el.innerHTML = `<div class="card hero"><h3>${pct === 100 ? "🎉 " : ""}${done}/${total} packed (${pct}%)</h3><div class="bar" style="background:#444"><div style="width:${pct}%"></div></div></div>` + html;
 }
 
 // ---------- Status ----------
@@ -1474,10 +1617,10 @@ async function saveEvent(id){
 }
 async function delEvent(id){
   if (!requireOnline()) return;
-  if (!confirm("Delete this event?")) return;
+  const row = DB.events.find(e => e.id === id);
   await sb.from("events").delete().eq("id", id);
   await loadAll();
-  toast("Event deleted");
+  undoBar(`Deleted "${row?.label || "event"}"`, () => sb.from("events").insert(row));
 }
 async function toggleVis(id, cur){
   if (!requireOnline()) return;
@@ -1497,7 +1640,12 @@ async function addTodo(list, inputId){
   await loadAll();
 }
 async function toggleTodo(id, done){ await sb.from("todos").update({ done }).eq("id", id); await loadAll(); }
-async function delTodo(id){ await sb.from("todos").delete().eq("id", id); await loadAll(); }
+async function delTodo(id){
+  const row = (DB.todos || []).find(t => t.id === id);
+  await sb.from("todos").delete().eq("id", id);
+  await loadAll();
+  undoBar("Task removed", () => sb.from("todos").insert(row));
+}
 function linkify(s){
   return esc(s).replace(/(https?:\/\/[^\s<]+)|(\b[\w-]+\.(?:com|org|net|io|co|travel|app)\/[^\s<]*)/g,
     m => { const href = m.startsWith("http") ? m : "https://" + m; return `<a href="${href}" target="_blank" rel="noopener">${m.length > 42 ? m.slice(0,40) + "…" : m}</a>`; });
@@ -1524,7 +1672,12 @@ async function addResource(){
   ["res-label","res-url","res-cat"].forEach(i => document.getElementById(i).value = "");
   await loadAll();
 }
-async function delResource(id){ await sb.from("resources").delete().eq("id", id); await loadAll(); }
+async function delResource(id){
+  const row = (DB.resources || []).find(r => r.id === id);
+  await sb.from("resources").delete().eq("id", id);
+  await loadAll();
+  undoBar("Link removed", () => sb.from("resources").insert(row));
+}
 function renderResources(){
   const el = document.getElementById("res-list");
   const cats = {};
