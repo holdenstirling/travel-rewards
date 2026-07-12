@@ -204,6 +204,16 @@
  .st-booked { background: #1f3324; color: #8fc79c; }
  .wc-ans b { color: #f2efe9; }
  #login .card h3 { color: #f2efe9; }
+ /* neutralize hard-coded inline colors from JS templates (inline beats CSS without !important) */
+ [style*="color:#666"], [style*="color: #666"] { color: #a8a296 !important; }
+ [style*="color:#8a8578"] { color: #9d968a !important; }
+ [style*="color:#999"] { color: #8f897d !important; }
+ [style*="color:#bbb"] { color: #b5afa4 !important; }
+ [style*="color:#1a1a1a"] { color: #e7e4de !important; }
+ [style*="background:#fff"] { background: #2a2825 !important; border-color: #3c3933 !important; }
+ [style*="background:#fdf3ec"] { background: #3a2b24 !important; }
+ [style*="#f0ede7"] { border-color: #33302b !important; }
+ [style*="background:#f4f9f4"] { background: #1f2a20 !important; }
  }
  .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
  .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
