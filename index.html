@@ -151,8 +151,8 @@
  .s-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #8a8578; background: #f0ede7; border-radius: 5px; padding: 2px 6px; flex-shrink: 0; }
  .page-desc { color: #8a8578; font-size: 13px; margin: 4px 0 12px; line-height: 1.5; }
  /* Trip pipeline stepper + covers */
- .stepper { display: flex; gap: 4px; align-items: center; }
- .step { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 4px 8px; font-size: 12px; cursor: pointer; opacity: .45; }
+ .stepper { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+ .step { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 4px 9px; font-size: 11px; cursor: pointer; opacity: .55; }
  .step.sdone { opacity: 1; border-color: #b2543a55; background: #fdf3ec; }
  .step.scur { opacity: 1; border-color: #b2543a; background: #b2543a; color: #fff; font-weight: 700; }
  /* Skeleton loading */
@@ -187,6 +187,23 @@
  a, .xlink { color: #8ab0ff; }
  .skel div { background: linear-gradient(90deg, #2a2825 25%, #34302a 50%, #2a2825 75%); background-size: 200% 100%; }
  table, th, td { border-color: #33302b !important; }
+ /* readability fixes: bold note labels, timeline cards, tables, tags */
+ .cnote b, .cnote .h, .card h3, .up2 .ttl, .dnum { color: #f2efe9; }
+ .up2 { background: #211f1c; border-color: #33302b; }
+ .up2 .up-body { border-color: #33302b; }
+ table { background: #211f1c; }
+ th { background: #2a2825; color: #cfcbc2; }
+ .bar { background: #3c3933; }
+ .tl::before { background: #33302b; }
+ .tl-dot { border-color: #171614; }
+ .s-tag { background: #2a2825; color: #a09e93; }
+ .st-idea { background: #33302b; color: #cfcbc2; }
+ .st-researching { background: #263149; color: #9db7e8; }
+ .st-dated { background: #3d2f16; color: #e0b06a; }
+ .st-booking { background: #42221f; color: #e89b93; }
+ .st-booked { background: #1f3324; color: #8fc79c; }
+ .wc-ans b { color: #f2efe9; }
+ #login .card h3 { color: #f2efe9; }
  }
  .grid-ev { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 6px; align-items: end; }
  .grid-res { display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 6px; align-items: end; }
@@ -671,7 +688,7 @@ function renderTrips(){
  ${t.created_by && t.created_by !== OWNER ? `<div class="meta">added by ${esc(nameOf(t.created_by))}</div>` : ""}
  ${t.claude_notes ? `<div class="meta cnote" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${md(t.claude_notes)}</div>` : ""}
  ${reds.length ? `<div class="meta" style="margin-top:6px">${reds.length} redemption${reds.length>1?"s":""} logged (${reds.reduce((s,r)=>s+r.points,0).toLocaleString()} pts) — <span class="xlink" onclick="goTab('calc','redeem-section')">view →</span></div>` : ""}
- <div class="stepper" style="margin-top:10px">${Object.keys(ST_LABEL).map((s, si) => { const cur = Object.keys(ST_LABEL).indexOf(t.status); return `<button class="step ${si < cur ? "sdone" : ""} ${si === cur ? "scur" : ""}" title="${ST_LABEL[s]}" onclick="setStatus('${t.id}','${s}')">${si === cur ? ST_LABEL[s] : ST_LABEL[s].split("")[0]}</button>`; }).join("")}</div>
+ <div class="stepper" style="margin-top:10px">${Object.keys(ST_LABEL).map((s, si) => { const cur = Object.keys(ST_LABEL).indexOf(t.status); return `<button class="step ${si < cur ? "sdone" : ""} ${si === cur ? "scur" : ""}" title="Mark as ${ST_LABEL[s]}" onclick="setStatus('${t.id}','${s}')">${ST_LABEL[s]}</button>`; }).join("")}</div>
  <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
  <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">Ask</button>
  ${t.date_start ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">Upcoming</button>` : ""}
