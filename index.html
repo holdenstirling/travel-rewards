@@ -17,51 +17,51 @@
  :root { color-scheme: light; }
  * { box-sizing: border-box; margin: 0; padding: 0; }
  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f7f6f3; color: #1a1a1a; padding: 20px; max-width: 880px; margin: 0 auto; }
- h1 { font-size: 24px; margin-bottom: 4px; }
- .sub { color: #666; font-size: 13px; margin-bottom: 18px; }
+ h1 { font-size: 26px; margin-bottom: 4px; }
+ .sub { color: #666; font-size: 14.5px; margin-bottom: 18px; }
  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; position: sticky; top: 0; background: #f7f6f3; padding: 8px 0; z-index: 5; }
- .tab { padding: 9px 15px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 13px; font-weight: 500; }
+ .tab { padding: 9px 15px; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 14.5px; font-weight: 500; }
  .tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
  .panel { display: none; } .panel.active { display: block; }
  .card { background: #fff; border: 1px solid #e5e2dc; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
- .card h3 { font-size: 15px; margin-bottom: 3px; }
- .meta { color: #666; font-size: 12.5px; line-height: 1.55; }
- .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+ .card h3 { font-size: 16px; margin-bottom: 3px; }
+ .meta { color: #666; font-size: 14px; line-height: 1.55; }
+ .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
  .pill.soon { background: #fdecea; color: #b3261e; }
  .pill.ok { background: #e8f2ea; color: #256a37; }
  .pill.info { background: #e9eef8; color: #2a4d8f; }
  .pill.warn { background: #fff3e0; color: #a15c00; }
- .group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8a8578; margin: 20px 0 8px; }
+ .group-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6e695c; margin: 20px 0 8px; }
  .row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0ede7; }
  .row:last-child { border-bottom: none; }
  .row input[type=checkbox] { width: 17px; height: 17px; accent-color: #256a37; cursor: pointer; margin-top: 2px; flex-shrink: 0; }
- .row .nm { flex: 1; font-size: 13.5px; line-height: 1.45; }
+ .row .nm { flex: 1; font-size: 15px; line-height: 1.45; }
  .row .nm .used { text-decoration: line-through; color: #999; }
- .amt { font-weight: 700; font-size: 13.5px; min-width: 46px; text-align: right; }
+ .amt { font-weight: 700; font-size: 15px; min-width: 46px; text-align: right; }
  .bar { height: 5px; background: #eee; border-radius: 3px; margin-top: 6px; overflow: hidden; }
  .bar > div { height: 100%; background: #b2543a; }
- table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e5e2dc; margin-bottom: 12px; }
- th { text-align: left; padding: 9px 12px; background: #f0ede7; font-size: 12px; }
+ table { width: 100%; border-collapse: collapse; font-size: 14.5px; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e5e2dc; margin-bottom: 12px; }
+ th { text-align: left; padding: 9px 12px; background: #f0ede7; font-size: 13px; }
  td { padding: 8px 12px; border-top: 1px solid #f0ede7; vertical-align: top; }
- input[type=text], input[type=date], input[type=email], select, textarea { padding: 8px 10px; border: 1px solid #ccc; border-radius: 7px; font-size: 13px; background: #fff; font-family: inherit; }
- .btn { padding: 8px 14px; border-radius: 7px; border: 1px solid #b2543a; background: #b2543a; color: #fff; cursor: pointer; font-size: 13px; }
+ input[type=text], input[type=date], input[type=email], select, textarea { padding: 8px 10px; border: 1px solid #ccc; border-radius: 7px; font-size: 14.5px; background: #fff; font-family: inherit; }
+ .btn { padding: 8px 14px; border-radius: 7px; border: 1px solid #b2543a; background: #b2543a; color: #fff; cursor: pointer; font-size: 14.5px; }
  .btn.alt { background: #fff; color: #1a1a1a; border-color: #ccc; }
  .btn:disabled { opacity: .5; cursor: default; }
- .del { background: none; border: none; color: #b3261e; cursor: pointer; font-size: 12px; padding: 4px 0; }
- .empty { color: #888; font-size: 13px; padding: 14px; text-align: center; }
+ .del { background: none; border: none; color: #b3261e; cursor: pointer; font-size: 13px; padding: 4px 0; }
+ .empty { color: #75705f; font-size: 14.5px; padding: 14px; text-align: center; }
  .hero { background: #1a1a1a; color: #fff; border: none; }
- .hero .meta { color: #bbb; }
- .note { font-size: 12px; color: #888; margin-top: 14px; }
+ .hero .meta { color: #c9c4ba; }
+ .note { font-size: 13.5px; color: #75705f; margin-top: 14px; }
  #login { max-width: 400px; margin: 60px auto; }
  .chat-log { max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
- .msg { padding: 10px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; max-width: 85%; white-space: pre-wrap; }
+ .msg { padding: 10px 13px; border-radius: 12px; font-size: 15px; line-height: 1.5; max-width: 85%; white-space: pre-wrap; }
  .msg.holden { background: #1a1a1a; color: #fff; align-self: flex-end; }
  .msg.claude { background: #fff; border: 1px solid #e5e2dc; align-self: flex-start; }
- .msg .t { font-size: 10.5px; opacity: .6; margin-top: 4px; }
- .status-tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+ .msg .t { font-size: 11.5px; opacity: .75; margin-top: 4px; }
+ .status-tag { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
  .st-idea { background: #eee; color: #555; } .st-researching { background: #e9eef8; color: #2a4d8f; }
  .st-dated { background: #fff3e0; color: #a15c00; } .st-booking { background: #fdecea; color: #b3261e; } .st-booked { background: #e8f2ea; color: #256a37; }
- .sync { font-size: 11px; color: #8a8578; }
+ .sync { font-size: 12px; color: #6e695c; }
  /* ---- UI polish pass ---- */
  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; box-shadow: 0 6px 8px -8px rgba(0,0,0,.18); }
  .tabs::-webkit-scrollbar { display: none; }
@@ -76,20 +76,20 @@
  .empty { animation: pulse 1.4s ease-in-out infinite; }
  @keyframes pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
  .msg { box-shadow: 0 1px 2px rgba(0,0,0,.05); }
- #hub-toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .25s; z-index: 99; pointer-events: none; max-width: 86vw; }
+ #hub-toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 14.5px; opacity: 0; transition: opacity .25s; z-index: 99; pointer-events: none; max-width: 86vw; }
  #hub-toast.show { opacity: 1; }
  .tab .dot { display: inline-block; width: 7px; height: 7px; background: #b3261e; border-radius: 50%; margin-left: 5px; vertical-align: middle; }
- .icon-btn { border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 14px; }
+ .icon-btn { border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 15px; }
  .icon-btn:hover { background: #f0efeb; }
- #offline-banner { display: none; position: sticky; top: 0; z-index: 20; background: #a15c00; color: #fff; text-align: center; font-size: 12.5px; padding: 7px 10px; border-radius: 8px; margin-bottom: 10px; }
+ #offline-banner { display: none; position: sticky; top: 0; z-index: 20; background: #a15c00; color: #fff; text-align: center; font-size: 14px; padding: 7px 10px; border-radius: 8px; margin-bottom: 10px; }
  body.offline #offline-banner { display: block; }
  /* rich text in chat */
  .msg .li { display: block; padding-left: 16px; text-indent: -10px; margin: 2px 0; }
- .msg code { background: rgba(0,0,0,.08); padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
- .msg pre { background: rgba(0,0,0,.06); padding: 8px 10px; border-radius: 8px; overflow-x: auto; font-size: 12px; font-family: ui-monospace, Menlo, monospace; margin: 6px 0; }
+ .msg code { background: rgba(0,0,0,.08); padding: 1px 5px; border-radius: 4px; font-size: 13px; font-family: ui-monospace, Menlo, monospace; }
+ .msg pre { background: rgba(0,0,0,.06); padding: 8px 10px; border-radius: 8px; overflow-x: auto; font-size: 13px; font-family: ui-monospace, Menlo, monospace; margin: 6px 0; }
  .msg a { color: #2a4d8f; text-decoration: underline; }
  .msg.holden code { background: rgba(255,255,255,.18); }
- .msg .h { display: block; font-weight: 700; margin: 6px 0 2px; font-size: 14px; }
+ .msg .h { display: block; font-weight: 700; margin: 6px 0 2px; font-size: 15px; }
  /* upcoming timeline */
  .tl { position: relative; padding-left: 26px; }
  .tl::before { content: ""; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: #e5e2dc; border-radius: 2px; }
@@ -100,31 +100,31 @@
  .up2 > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 11px 13px; cursor: pointer; }
  .up2 > summary::-webkit-details-marker { display: none; }
  .up2 .dstack { min-width: 42px; text-align: center; flex-shrink: 0; }
- .dnum { font-size: 20px; font-weight: 800; line-height: 1.05; }
- .dmon { font-size: 10px; color: #8a8578; text-transform: uppercase; letter-spacing: .05em; }
- .up2 .ttl { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.35; }
- .up2 .sub { font-size: 11.5px; color: #8a8578; font-weight: 400; margin-top: 1px; }
- .chev { flex-shrink: 0; color: #c9c4ba; font-size: 12px; transition: transform .18s; }
+ .dnum { font-size: 22px; font-weight: 800; line-height: 1.05; }
+ .dmon { font-size: 11px; color: #6e695c; text-transform: uppercase; letter-spacing: .05em; }
+ .up2 .ttl { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; line-height: 1.35; }
+ .up2 .sub { font-size: 13px; color: #6e695c; font-weight: 400; margin-top: 1px; }
+ .chev { flex-shrink: 0; color: #c9c4ba; font-size: 13px; transition: transform .18s; }
  .up2[open] .chev { transform: rotate(90deg); }
  .up2 .up-body { padding: 4px 13px 12px 67px; border-top: 1px dashed #f0ede7; }
  @media (max-width: 600px) { .up2 .up-body { padding-left: 13px; } }
- .today-badge { background: #b2543a; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; letter-spacing: .04em; }
- #chat-fab { position: fixed; bottom: 20px; right: 18px; z-index: 30; padding: 13px 20px; border-radius: 999px; border: none; background: #1a1a1a; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); transition: transform .1s; }
+ .today-badge { background: #b2543a; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; letter-spacing: .04em; }
+ #chat-fab { position: fixed; bottom: 20px; right: 18px; z-index: 30; padding: 13px 20px; border-radius: 999px; border: none; background: #1a1a1a; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); transition: transform .1s; }
  #chat-fab:active { transform: scale(.93); }
  #chat-fab .dot { position: absolute; top: 3px; right: 3px; width: 11px; height: 11px; background: #b3261e; border-radius: 50%; border: 2px solid #f7f6f3; }
- .xlink { color: #2a4d8f; text-decoration: underline; cursor: pointer; font-size: 12px; }
+ .xlink { color: #2a4d8f; text-decoration: underline; cursor: pointer; font-size: 13px; }
  .rw-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid #f0ede7; gap: 10px; }
  .rw-row:last-child { border-bottom: none; }
  .rw-n { font-weight: 700; white-space: nowrap; }
  .flash { animation: hubflash 1.8s ease; }
  @keyframes hubflash { 0%, 55% { box-shadow: 0 0 0 3px rgba(178,84,58,.45); } 100% { box-shadow: none; } }
- #today-strip .ts { background: #1a1a1a; color: #eee; border-radius: 14px; padding: 12px 16px; margin: 12px 0 4px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+ #today-strip .ts { background: #1a1a1a; color: #eee; border-radius: 14px; padding: 12px 16px; margin: 12px 0 4px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 14.5px; }
  #today-strip .ts b { color: #fff; }
  #today-strip .ts .tsi { cursor: pointer; white-space: nowrap; }
  #today-strip .ts .tsi:hover { text-decoration: underline; }
  #today-strip .ts.trip-mode { background: linear-gradient(120deg, #7a3423, #b2543a); }
  .wc-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px; }
- .wc-chip { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 9px 4px; font-size: 12.5px; font-weight: 600; cursor: pointer; text-align: center; }
+ .wc-chip { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 9px 4px; font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; }
  .wc-chip.active { border-color: #b2543a; background: #fdf3ec; }
  .wc-ans { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: #f4f9f4; border: 1px solid #d7e8d9; }
  .cnote { white-space: pre-line; line-height: 1.55; }
@@ -147,12 +147,12 @@
  #s-res { max-height: 52vh; overflow-y: auto; margin-top: 8px; }
  .s-hit { padding: 9px 10px; border-radius: 10px; cursor: pointer; display: flex; gap: 10px; align-items: baseline; }
  .s-hit:hover { background: #f4f1ea; }
- .s-hit .sub { color: #8a8578; font-size: 12px; }
- .s-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #8a8578; background: #f0ede7; border-radius: 5px; padding: 2px 6px; flex-shrink: 0; }
- .page-desc { color: #8a8578; font-size: 13px; margin: 4px 0 12px; line-height: 1.5; }
+ .s-hit .sub { color: #6e695c; font-size: 13px; }
+ .s-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6e695c; background: #f0ede7; border-radius: 5px; padding: 2px 6px; flex-shrink: 0; }
+ .page-desc { color: #6e695c; font-size: 14.5px; margin: 4px 0 12px; line-height: 1.5; }
  /* Trip pipeline stepper + covers */
  .stepper { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
- .step { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 4px 9px; font-size: 11px; cursor: pointer; opacity: .55; }
+ .step { border: 1.5px solid #e5e1d8; background: #fff; border-radius: 999px; padding: 4px 9px; font-size: 12px; cursor: pointer; opacity: .55; }
  .step.sdone { opacity: 1; border-color: #b2543a55; background: #fdf3ec; }
  .step.scur { opacity: 1; border-color: #b2543a; background: #b2543a; color: #fff; font-weight: 700; }
  /* Skeleton loading */
@@ -165,52 +165,84 @@
  .conf { position: fixed; top: -20px; z-index: 200; font-size: 22px; animation: fall 1.7s ease-in forwards; pointer-events: none; }
  @keyframes fall { to { transform: translateY(105vh) rotate(340deg); opacity: .7; } }
  #hub-toast.show { pointer-events: auto; }
- #hub-toast button { background: none; border: none; color: #f5b89f; font-weight: 700; margin-left: 10px; cursor: pointer; font-size: 13px; }
- /* Dark mode */
+ #hub-toast button { background: none; border: none; color: #f5b89f; font-weight: 700; margin-left: 10px; cursor: pointer; font-size: 14.5px; }
+ /* First-time setup wizard */
+ #wiz-head, #wiz-nav, #wiz-skip { display: none; }
+ #setup.wizard #wiz-head { display: block; }
+ #setup.wizard #wiz-nav { display: flex; gap: 10px; margin-top: 16px; }
+ #setup.wizard #wiz-nav .btn { flex: 1; padding: 13px 16px; font-size: 15.5px; font-weight: 600; }
+ #setup.wizard #wiz-skip { display: block; margin-top: 12px; text-align: center; }
+ #setup.wizard .setup-step { display: none; }
+ #setup.wizard .setup-step.wactive { display: block; animation: wizin .18s ease; }
+ @keyframes wizin { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+ #setup.wizard [data-wshide] { display: none !important; }
+ #setup.wizard .group-title { margin-top: 6px; }
+ .wiz-top { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+ .wiz-top h2 { font-size: 21px; }
+ .wiz-count { font-size: 13px; color: #6e695c; font-weight: 700; letter-spacing: .02em; }
+ .wiz-bar { height: 6px; background: #e5e2dc; border-radius: 3px; margin: 10px 0 10px; overflow: hidden; }
+ .wiz-bar > div { height: 100%; background: #b2543a; border-radius: 3px; width: 0; transition: width .25s ease; }
+ /* Dark mode — muted text kept at >= 7:1 contrast so grey-on-black stays readable */
  @media (prefers-color-scheme: dark) {
- body { background: #171614; color: #e7e4de; }
- h1 { color: #f2efe9; }
+ body { background: #171614; color: #eceae4; }
+ h1 { color: #f5f3ee; }
  .card, .s-box, #chat-drawer, .skel { background: #211f1c; border: 1px solid #33302b; box-shadow: none; }
  .card.hero, .today-strip, #today-strip .ts { border: none; }
- .tabs { background: #171614; }
- .tab, .icon-btn, .wc-chip, .step { background: #211f1c; color: #cfcbc2; border-color: #3c3933; }
- .tab.active { background: #e7e4de; color: #171614; }
- input, select, textarea { background: #2a2825; color: #e7e4de; border-color: #3c3933; }
- .meta, .sub, .note, .empty, .s-hit .sub { color: #a09a8e; }
- .group-title { color: #8f897d; }
- .msg.claude, pre, code { background: #2a2825; color: #e7e4de; }
- .wc-chip.active { background: #3a2b24; border-color: #b2543a; color: #f2efe9; }
- .wc-ans { background: #1f2a20; border-color: #2e4030; }
- .step.sdone { background: #3a2b24; }
+ .hero .meta, #today-strip .ts { color: #cbc6bb; }
+ .tabs { background: #171614; box-shadow: 0 6px 8px -8px rgba(0,0,0,.6); }
+ .tab, .icon-btn, .wc-chip, .step { background: #211f1c; color: #d8d4ca; border-color: #45413a; }
+ .tab:hover:not(.active), .icon-btn:hover { background: #2c2a26; }
+ .tab.active { background: #ece9e2; color: #171614; border-color: #ece9e2; }
+ input, input[type=text], input[type=date], input[type=email], select, textarea { background: #2a2825; color: #eceae4; border-color: #45413a; }
+ ::placeholder { color: #9d9788; opacity: 1; }
+ input[type=date] { color-scheme: dark; }
+ .btn.alt { background: #2a2825; color: #eceae4; border-color: #45413a; }
+ .del { color: #ff9a90; }
+ .meta, .sub, .note, .empty, .s-hit .sub { color: #c6c0b3; }
+ .page-desc, .sync, .dmon, .up2 .sub, .msg .t { color: #b3ad9f; }
+ .group-title { color: #aba594; }
+ .chev { color: #6e6a61; }
+ .msg.claude, pre, code { background: #2a2825; color: #eceae4; }
+ .msg.claude { border-color: #33302b; }
+ .msg a { color: #9dbdff; }
+ .wc-chip.active { background: #3a2b24; border-color: #c97a5e; color: #f5f3ee; }
+ .wc-ans { background: #1f2a20; border-color: #2e4030; color: #dfe8df; }
+ .step.sdone { background: #3a2b24; border-color: #b2543a88; }
  .s-hit:hover { background: #2a2825; }
  .row, .rw-row { border-color: #2c2a26; }
- a, .xlink { color: #8ab0ff; }
+ .row .nm .used { color: #8f897d; }
+ a, .xlink { color: #9dbdff; }
  .skel div { background: linear-gradient(90deg, #2a2825 25%, #34302a 50%, #2a2825 75%); background-size: 200% 100%; }
  table, th, td { border-color: #33302b !important; }
  /* readability fixes: bold note labels, timeline cards, tables, tags */
- .cnote b, .cnote .h, .card h3, .up2 .ttl, .dnum { color: #f2efe9; }
+ .cnote b, .cnote .h, .card h3, .up2 .ttl, .dnum { color: #f5f3ee; }
  .up2 { background: #211f1c; border-color: #33302b; }
  .up2 .up-body { border-color: #33302b; }
  table { background: #211f1c; }
- th { background: #2a2825; color: #cfcbc2; }
+ th { background: #2a2825; color: #d8d4ca; }
  .bar { background: #3c3933; }
  .tl::before { background: #33302b; }
  .tl-dot { border-color: #171614; }
- .s-tag { background: #2a2825; color: #a09e93; }
- .st-idea { background: #33302b; color: #cfcbc2; }
- .st-researching { background: #263149; color: #9db7e8; }
- .st-dated { background: #3d2f16; color: #e0b06a; }
- .st-booking { background: #42221f; color: #e89b93; }
- .st-booked { background: #1f3324; color: #8fc79c; }
- .wc-ans b { color: #f2efe9; }
- #login .card h3 { color: #f2efe9; }
+ .s-tag { background: #2a2825; color: #b3ad9f; }
+ .st-idea { background: #33302b; color: #d8d4ca; }
+ .st-researching { background: #263149; color: #a9c1ec; }
+ .st-dated { background: #3d2f16; color: #e6bc7f; }
+ .st-booking { background: #42221f; color: #eda8a0; }
+ .st-booked { background: #1f3324; color: #9ed0ab; }
+ .wc-ans b { color: #f5f3ee; }
+ #login .card h3 { color: #f5f3ee; }
+ .wiz-bar { background: #33302b; }
+ .wiz-count { color: #b3ad9f; }
  /* neutralize hard-coded inline colors from JS templates (inline beats CSS without !important) */
- [style*="color:#666"], [style*="color: #666"] { color: #a8a296 !important; }
- [style*="color:#8a8578"] { color: #9d968a !important; }
- [style*="color:#999"] { color: #8f897d !important; }
- [style*="color:#bbb"] { color: #b5afa4 !important; }
- [style*="color:#1a1a1a"] { color: #e7e4de !important; }
- [style*="background:#fff"] { background: #2a2825 !important; border-color: #3c3933 !important; }
+ [style*="color:#666"], [style*="color: #666"] { color: #c6c0b3 !important; }
+ [style*="color:#8a8578"], [style*="color: #8a8578"] { color: #b3ad9f !important; }
+ [style*="color:#999"], [style*="color: #999"] { color: #a49e90 !important; }
+ [style*="color:#888"], [style*="color: #888"] { color: #aca696 !important; }
+ [style*="color:#bbb"], [style*="color: #bbb"] { color: #cbc6bb !important; }
+ [style*="color:#555"], [style*="color: #555"] { color: #c6c0b3 !important; }
+ [style*="color:#1a1a1a"], [style*="color: #1a1a1a"] { color: #eceae4 !important; }
+ [style*="color:#b2543a"], [style*="color: #b2543a"] { color: #d98b72 !important; }
+ [style*="background:#fff"], [style*="background: #fff"] { background: #2a2825 !important; border-color: #45413a !important; }
  [style*="background:#fdf3ec"] { background: #3a2b24 !important; }
  [style*="#f0ede7"] { border-color: #33302b !important; }
  [style*="background:#f4f9f4"] { background: #1f2a20 !important; }
@@ -229,7 +261,7 @@
  h1 { font-size: 19px; }
  .card { padding: 12px 13px; }
  .msg { max-width: 92%; }
- table { font-size: 12px; }
+ table { font-size: 13px; }
  th, td { padding: 7px 8px; }
  /* 16px inputs stop iOS auto-zoom on focus */
  input[type=text], input[type=date], input[type=email], select, textarea { font-size: 16px; padding: 10px 12px; }
@@ -239,7 +271,7 @@
  .btn { padding: 11px 16px; }
  .tab { padding: 10px 14px; }
  .chat-log { max-height: 48vh; }
- .del { padding: 8px 6px; font-size: 14px; }
+ .del { padding: 8px 6px; font-size: 15px; }
  }
 </style>
 </head>
@@ -251,6 +283,10 @@
  <div class="meta" style="margin:8px 0 12px">Plan trips together · know which card to swipe · see what your points can buy. No passwords — we email you a sign-in link.</div>
  <input type="email" id="login-email" placeholder="your@email.com" inputmode="email" autocapitalize="none" autocomplete="email" autofocus style="width:100%;margin-bottom:8px" onkeydown="if(event.key==='Enter')sendLink()">
  <button class="btn" id="login-btn" style="width:100%" onclick="sendLink()">Email me a sign-in link</button>
+ <div id="code-row" style="display:none;margin-top:10px">
+ <input type="text" id="login-code" placeholder="6-digit code from the email" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="width:100%;margin-bottom:8px" onkeydown="if(event.key==='Enter')verifyCode()">
+ <button class="btn" id="code-btn" style="width:100%;background:#fff;color:#b2543a" onclick="verifyCode()">Sign in with code</button>
+ </div>
  <div class="meta" id="login-msg" style="margin-top:10px"></div>
  <div class="meta" style="margin-top:12px;border-top:1px solid #f0ede7;padding-top:10px">First time? Sign in and you can request access — Holden approves, you get an email, and a 2-minute setup makes the app yours.</div>
  </div>
@@ -281,28 +317,46 @@
 <div id="today-strip"></div>
 
 <div id="setup" class="panel">
- <div id="setup-welcome"></div>
- <div class="page-desc">Your cards, points balances, and calendar. Everything here is private to your account and shapes what the rest of the app shows you.</div>
+ <div id="wiz-head">
+ <div class="wiz-top"><h2 id="wiz-title">Set up</h2><span class="wiz-count" id="wiz-count"></span></div>
+ <div class="wiz-bar"><div id="wiz-fill"></div></div>
+ <div class="page-desc" id="wiz-desc" style="margin-bottom:14px"></div>
+ </div>
+ <div id="setup-welcome" data-wshide></div>
+ <div class="page-desc" data-wshide>Your cards, points balances, and calendar. Everything here is private to your account and shapes what the rest of the app shows you.</div>
+ <section class="setup-step" data-step="1">
  <div class="group-title">Basics</div>
  <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
  <input type="text" id="p-name" placeholder="Display name">
  <input type="text" id="p-airport" placeholder="Home airport (e.g. DEN)" maxlength="3" style="text-transform:uppercase">
  <select id="p-cabin" style="grid-column:1/-1"><option value="econ">Long-haul preference: Economy</option><option value="biz">Long-haul preference: Business</option></select>
  </div>
+ </section>
+ <section class="setup-step" data-step="2">
  <div class="group-title">My cards <span class="meta" style="font-weight:400">— tap all you carry</span></div>
  <div class="card"><div class="wc-chips" id="p-cards"></div>
  <input type="text" id="p-cardcustom" placeholder="Other card(s), comma-separated" style="margin-top:10px;width:100%"></div>
+ </section>
+ <section class="setup-step" data-step="3">
  <div class="group-title">My points balances</div>
  <div class="card" id="p-balances"></div>
+ </section>
+ <section class="setup-step" data-step="4">
  <div class="group-title">Link my calendar <span class="meta" style="font-weight:400">— optional</span></div>
  <div class="card">
  <input type="text" id="p-ical" placeholder="Paste your secret iCal address (https://calendar.google.com/…/basic.ics)" style="width:100%">
  <div class="meta" style="margin-top:6px">Google Calendar → Settings → your calendar → <b>Integrate calendar</b> → copy "Secret address in iCal format". Your events then appear on Upcoming — <b>visible only to you</b>, never stored, never shared.</div>
  </div>
- <button class="btn" style="margin-top:12px;width:100%" onclick="saveProfile()">Save my setup</button>
- <div class="meta" style="margin-top:8px">Everything on this screen is locked to your login by row-level security — other members (including Holden) can't read it.</div>
- <div class="group-title" style="margin-top:16px">Your data, your call</div>
- <div class="card" style="display:flex;gap:10px;flex-wrap:wrap">
+ </section>
+ <div id="wiz-nav">
+ <button class="btn alt" id="wiz-back" onclick="wizBack()">← Back</button>
+ <button class="btn" id="wiz-next" onclick="wizNext()">Next →</button>
+ </div>
+ <div class="meta" id="wiz-skip"><span class="xlink" onclick="skipWizard()">Skip for now</span> — you can finish any time in Settings.</div>
+ <button class="btn" data-wshide style="margin-top:12px;width:100%" onclick="saveProfile()">Save my setup</button>
+ <div class="meta" data-wshide style="margin-top:8px">Everything on this screen is locked to your login by row-level security — other members (including Holden) can't read it.</div>
+ <div class="group-title" data-wshide style="margin-top:16px">Your data, your call</div>
+ <div class="card" data-wshide style="display:flex;gap:10px;flex-wrap:wrap">
  <button class="btn" style="background:#fff;color:#1a1a1a;border:1px solid #e5e1d8" onclick="exportMyData()">Download my data</button>
  <button class="del" onclick="deleteMyData()">Delete my setup data</button>
  </div>
@@ -331,17 +385,17 @@
  </div>
  <div class="card">
  <div class="grid-ev">
- <label style="font-size:11px;color:#666">Add an event<br><input type="text" id="ev-label" placeholder="e.g. Dad visiting" style="width:100%;margin-top:3px"></label>
- <label style="font-size:11px;color:#666">Date<br><input type="date" id="ev-start" style="width:100%;margin-top:3px"></label>
- <label style="font-size:11px;color:#666">End (opt.)<br><input type="date" id="ev-end" style="width:100%;margin-top:3px"></label>
- <label style="font-size:11px;color:#666">Type<br><select id="ev-kind" style="width:100%;margin-top:3px"><option value="personal">Personal</option><option value="trip">Travel</option><option value="deadline">Deadline</option></select></label>
+ <label style="font-size:13px;color:#666">Add an event<br><input type="text" id="ev-label" placeholder="e.g. Dad visiting" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">Date<br><input type="date" id="ev-start" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">End (opt.)<br><input type="date" id="ev-end" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">Type<br><select id="ev-kind" style="width:100%;margin-top:3px"><option value="personal">Personal</option><option value="trip">Travel</option><option value="deadline">Deadline</option></select></label>
  <button class="btn" onclick="addEvent()">Add</button>
  </div>
  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
- <label style="font-size:11px;color:#666">Location (optional)<br><input type="text" id="ev-loc" placeholder="e.g. Moab, UT" style="width:100%;margin-top:3px"></label>
- <label style="font-size:11px;color:#666">Link (optional)<br><input type="text" id="ev-url" placeholder="airbnb.com/…" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">Location (optional)<br><input type="text" id="ev-loc" placeholder="e.g. Moab, UT" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">Link (optional)<br><input type="text" id="ev-url" placeholder="airbnb.com/…" style="width:100%;margin-top:3px"></label>
  </div>
- <label style="font-size:11px;color:#666;display:block;margin-top:8px">Description (optional)<br><input type="text" id="ev-notes" placeholder="details, who's coming, what to know…" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666;display:block;margin-top:8px">Description (optional)<br><input type="text" id="ev-notes" placeholder="details, who's coming, what to know…" style="width:100%;margin-top:3px"></label>
  <div class="meta" style="margin-top:6px">Anyone can add — events show who added them. Claude's daily scan will ask Holden whether to mirror new events to Google Calendar.</div>
  </div>
  <div id="upcoming-list"><div class="empty">Loading…</div></div>
@@ -354,9 +408,9 @@
  <div id="todo-list"></div>
  <div class="group-title">Links & resources</div>
  <div class="card"><div class="grid-res">
- <label style="font-size:11px;color:#666">Label<br><input type="text" id="res-label" style="width:100%;margin-top:3px"></label>
- <label style="font-size:11px;color:#666">URL<br><input type="text" id="res-url" placeholder="https://…" style="width:100%;margin-top:3px"></label>
- <label style="font-size:11px;color:#666">Category<br><input type="text" id="res-cat" placeholder="e.g. Japan" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">Label<br><input type="text" id="res-label" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">URL<br><input type="text" id="res-url" placeholder="https://…" style="width:100%;margin-top:3px"></label>
+ <label style="font-size:13px;color:#666">Category<br><input type="text" id="res-cat" placeholder="e.g. Japan" style="width:100%;margin-top:3px"></label>
  <button class="btn" onclick="addResource()">Add</button>
  </div></div>
  <div id="res-list"></div>
@@ -370,29 +424,29 @@
  <h3>Add a trip to the pipeline</h3>
  <div class="meta" style="margin-bottom:12px">Saves to the shared database — Claude sees it in the next daily scan. Instant estimate below.</div>
  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
- <label style="font-size:12px;color:#666">1. Where to?<br><input type="text" id="t-dest" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
- <label style="font-size:12px;color:#666">2. Region<br><select id="t-region" style="width:100%;margin-top:4px" onchange="calcTrip()">
+ <label style="font-size:13px;color:#666">1. Where to?<br><input type="text" id="t-dest" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+ <label style="font-size:13px;color:#666">2. Region<br><select id="t-region" style="width:100%;margin-top:4px" onchange="calcTrip()">
  <option value="domestic">US domestic</option><option value="mexico">Mexico/Caribbean/Central Am.</option>
  <option value="europe">Europe</option><option value="asia">Asia / Japan</option>
  <option value="southam">South America</option><option value="oceania">Oceania / NZ</option>
  <option value="africa">Africa / Middle East</option></select></label>
- <label style="font-size:12px;color:#666">3. When? (rough ok)<br><input type="text" id="t-when" placeholder="Mar 2028 / flexible" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
- <label style="font-size:12px;color:#666">3b. Exact dates<br><div style="display:flex;gap:4px;margin-top:4px"><input type="date" id="t-start" style="width:50%" onchange="syncDates()"><input type="date" id="t-end" style="width:50%" onchange="syncDates()"></div></label>
- <label style="font-size:12px;color:#666">4. Days?<br><input type="text" id="t-days" placeholder="auto from dates" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
- <label style="font-size:12px;color:#666">5. Travelers?<br><input type="text" id="t-pax" placeholder="1" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
- <label style="font-size:12px;color:#666">6. Cabin long-haul?<br><select id="t-cabin" style="width:100%;margin-top:4px" onchange="calcTrip()"><option value="econ">Economy</option><option value="biz" selected>Business</option></select></label>
- <label style="font-size:12px;color:#666">7. Style?<br><select id="t-style" style="width:100%;margin-top:4px" onchange="calcTrip()">
+ <label style="font-size:13px;color:#666">3. When? (rough ok)<br><input type="text" id="t-when" placeholder="Mar 2028 / flexible" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+ <label style="font-size:13px;color:#666">3b. Exact dates<br><div style="display:flex;gap:4px;margin-top:4px"><input type="date" id="t-start" style="width:50%" onchange="syncDates()"><input type="date" id="t-end" style="width:50%" onchange="syncDates()"></div></label>
+ <label style="font-size:13px;color:#666">4. Days?<br><input type="text" id="t-days" placeholder="auto from dates" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+ <label style="font-size:13px;color:#666">5. Travelers?<br><input type="text" id="t-pax" placeholder="1" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+ <label style="font-size:13px;color:#666">6. Cabin long-haul?<br><select id="t-cabin" style="width:100%;margin-top:4px" onchange="calcTrip()"><option value="econ">Economy</option><option value="biz" selected>Business</option></select></label>
+ <label style="font-size:13px;color:#666">7. Style?<br><select id="t-style" style="width:100%;margin-top:4px" onchange="calcTrip()">
  <option value="budget">Budget</option><option value="mid" selected>Mid</option><option value="comfort">Comfort</option></select></label>
- <label style="font-size:12px;color:#666">8. Anchor / hard constraint?<br><input type="text" id="t-anchor" placeholder="wedding, permit, race…" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+ <label style="font-size:13px;color:#666">8. Anchor / hard constraint?<br><input type="text" id="t-anchor" placeholder="wedding, permit, race…" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
  </div>
- <label style="font-size:12px;color:#666;display:block;margin-top:10px">9. Anything else?<br><input type="text" id="t-notes" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+ <label style="font-size:13px;color:#666;display:block;margin-top:10px">9. Anything else?<br><input type="text" id="t-notes" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
  </div>
  <div class="card" id="t-est"><div class="meta">Answer destination, days, travelers for an estimate.</div></div>
  <button class="btn" style="margin-bottom:14px" onclick="saveTripDB()">Save to pipeline (Claude will see it)</button>
 </div>
 
 <div id="chat" class="panel">
- <div class="page-desc"><b>Ask now</b> answers instantly using your trips, balances, and constraints. <b>Leave for the daily review</b> when it needs email, calendar, or deeper research — you'll have an answer by 9am.</div>
+ <div class="page-desc"><b>Ask now</b> answers instantly using your trips, balances, and constraints. <b>Leave for the daily review</b> when it needs email, calendar, or deeper research — you'll have an answer by 9am. Your chat is private — other members can't see it.</div>
  <div class="chat-log" id="chat-log"></div>
  <textarea id="chat-input" enterkeyhint="send" placeholder="e.g. Is 9 days enough for Japan in May? — Enter sends" style="width:100%;min-height:60px;margin-bottom:8px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askNow();}"></textarea>
  <div style="display:flex;gap:8px">
@@ -409,12 +463,12 @@
  <div class="card">
  <h3>Should this be points or cash?</h3>
  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px">
- <label style="font-size:12px;color:#666">Cash price ($)<br><input type="text" id="c-cash" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
- <label style="font-size:12px;color:#666">Award (points)<br><input type="text" id="c-pts" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
- <label style="font-size:12px;color:#666">Award fees ($)<br><input type="text" id="c-fees" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
- <label style="font-size:12px;color:#666">Points from<br><select id="c-cur" style="width:100%;margin-top:4px" onchange="calcVerdict()"></select></label>
+ <label style="font-size:13px;color:#666">Cash price ($)<br><input type="text" id="c-cash" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+ <label style="font-size:13px;color:#666">Award (points)<br><input type="text" id="c-pts" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+ <label style="font-size:13px;color:#666">Award fees ($)<br><input type="text" id="c-fees" style="width:100%;margin-top:4px" oninput="calcVerdict()"></label>
+ <label style="font-size:13px;color:#666">Points from<br><select id="c-cur" style="width:100%;margin-top:4px" onchange="calcVerdict()"></select></label>
  </div>
- <label style="font-size:13px;display:block;margin-top:12px"><input type="checkbox" id="c-plat" checked onchange="calcVerdict()">Flight paid on Platinum (5x ≈ 10% back)</label>
+ <label style="font-size:14.5px;display:block;margin-top:12px"><input type="checkbox" id="c-plat" checked onchange="calcVerdict()">Flight paid on Platinum (5x ≈ 10% back)</label>
  </div>
  <div class="card" id="c-result"><div class="meta">Enter prices for a verdict.</div></div>
  <div id="redeem-section"></div>
@@ -473,7 +527,7 @@
  <tr><td>Hotels</td><td>UR → Hyatt <b>(1:1 ends Sep 30, 2026)</b></td><td>&gt;2¢/pt</td></tr>
  </table>
  <div class="group-title">Rules</div>
- <div class="card" style="font-size:13.5px;line-height:1.6">
+ <div class="card" style="font-size:15px;line-height:1.6">
  1. Never transfer speculatively. 2. Check transfer bonuses first. 3. Pool FU → CSP. 4. Prime Visa ≠ UR. 5. Aeroplan takes MR + UR. 6. Rentals → CSP, decline CDW. 7. Flights → Platinum. 8. Cards ≠ mountain rescue insurance (ÖAV).
  </div>
 </div>
@@ -529,7 +583,19 @@ async function sendLink(){
  btn.disabled = false; btn.textContent = "Email me a sign-in link";
  document.getElementById("login-msg").innerHTML = error
  ? ("Error: " + esc(error.message))
- : "<b>Link sent to " + esc(email) + "</b> — open it on this device. Not there in a minute? Check spam, or tap the button to resend.";
+ : "<b>Sent to " + esc(email) + "</b> — tap the link on this device, or type the 6-digit code from the email below (easiest from the installed app). Not there in a minute? Check spam, or resend.";
+ if (!error) { document.getElementById("code-row").style.display = "block"; document.getElementById("login-code").focus(); }
+}
+async function verifyCode(){
+ const email = document.getElementById("login-email").value.trim();
+ const token = document.getElementById("login-code").value.trim();
+ if (!/.+@.+\..+/.test(email)) { document.getElementById("login-msg").textContent = "Enter your email above first."; return; }
+ if (!/^\d{6}$/.test(token)) { document.getElementById("login-msg").textContent = "The code is the 6 digits from the sign-in email."; return; }
+ const btn = document.getElementById("code-btn");
+ btn.disabled = true; btn.textContent = "Checking…";
+ const { error } = await sb.auth.verifyOtp({ email, token, type: "email" });
+ btn.disabled = false; btn.textContent = "Sign in with code";
+ if (error) document.getElementById("login-msg").innerHTML = "Error: " + esc(error.message) + " — codes expire after an hour; resend the email for a fresh one.";
 }
 async function boot(){
  const { data: { session } } = await sb.auth.getSession();
@@ -603,10 +669,10 @@ async function loadAll(){
  if (h1) h1.textContent = "Trips Hub";
  if (localStorage.getItem("hubtab") && !document.querySelector(`.tab[data-p="${localStorage.getItem("hubtab")}"]`)) localStorage.setItem("hubtab", "trips");
  }
- // first sign-in for members without a profile: route into guided setup
+ // first sign-in for members without a profile: route into the guided setup wizard
  if (ME !== OWNER && !PROFILE && !sessionStorage.getItem("setupNudged")) {
  sessionStorage.setItem("setupNudged", "1");
- setTimeout(() => goTab("setup"), 400);
+ setTimeout(startWizard, 400);
  }
  DB.state = Object.fromEntries((s.data || []).map(r => [r.key, r.value]));
  const b = myBalances();
@@ -616,7 +682,7 @@ async function loadAll(){
  const mine = Object.entries(b).slice(0, 4).map(([k, v]) => `${k} ${Math.round(v/1000)}k`).join(" ·");
  document.getElementById("header-sub").innerHTML = mine
  ? `${esc(PROFILE?.home_airport || "")} · <b>${mine}</b> <span class="xlink" onclick="goTab('setup')">edit</span>`
- : `Personalize me → <span class="xlink" onclick="goTab('setup')">My Setup</span>`;
+ : `Personalize me → <span class="xlink" onclick="startWizard()">2-minute setup</span>`;
  }
  const cur = document.getElementById("c-cur");
  const progs = ME === OWNER ? ["MR","UR","United"] : Object.keys(b);
@@ -700,10 +766,10 @@ function renderTrips(){
  ${reds.length ? `<div class="meta" style="margin-top:6px">${reds.length} redemption${reds.length>1?"s":""} logged (${reds.reduce((s,r)=>s+r.points,0).toLocaleString()} pts) — <span class="xlink" onclick="goTab('calc','redeem-section')">view →</span></div>` : ""}
  <div class="stepper" style="margin-top:10px">${Object.keys(ST_LABEL).map((s, si) => { const cur = Object.keys(ST_LABEL).indexOf(t.status); return `<button class="step ${si < cur ? "sdone" : ""} ${si === cur ? "scur" : ""}" title="Mark as ${ST_LABEL[s]}" onclick="setStatus('${t.id}','${s}')">${ST_LABEL[s]}</button>`; }).join("")}</div>
  <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
- <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">Ask</button>
- ${t.date_start ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">Upcoming</button>` : ""}
- ${pack ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goPack('${pack}')">Packing</button>` : ""}
- ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="logForTrip('${t.id}')">Log booking</button>` : ""}
+ <button class="btn" style="padding:6px 12px;font-size:13px" onclick="askAbout('trip','${t.id}')">Ask</button>
+ ${t.date_start ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="goTab('upcoming')">Upcoming</button>` : ""}
+ ${pack ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="goPack('${pack}')">Packing</button>` : ""}
+ ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="logForTrip('${t.id}')">Log booking</button>` : ""}
  <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`;
  }).join("");
 }
@@ -746,11 +812,11 @@ function tripDetail(id){
  ${tds.map(todoRow).join("") || '<div class="meta">Nothing yet.</div>'}
  <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="td-add-${t.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','td-add-${t.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','td-add-${t.id}')">Add</button></div>
  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
- <button class="btn" style="padding:6px 12px;font-size:12px" onclick="askAbout('trip','${t.id}')">Ask</button>
- ${pack ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="goPack('${pack}')">Packing</button>` : ""}
- ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="logForTrip('${t.id}')">Log booking</button>` : ""}
- <button class="btn" style="padding:6px 12px;font-size:12px" onclick="goTab('upcoming')">Calendar</button>
- <button class="btn alt" style="padding:6px 12px;font-size:12px" onclick="requestScan('${t.id}')">Request price scan</button>
+ <button class="btn" style="padding:6px 12px;font-size:13px" onclick="askAbout('trip','${t.id}')">Ask</button>
+ ${pack ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="goPack('${pack}')">Packing</button>` : ""}
+ ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="logForTrip('${t.id}')">Log booking</button>` : ""}
+ <button class="btn" style="padding:6px 12px;font-size:13px" onclick="goTab('upcoming')">Calendar</button>
+ <button class="btn alt" style="padding:6px 12px;font-size:13px" onclick="requestScan('${t.id}')">Request price scan</button>
  </div>
  <div class="meta" style="margin-top:6px">Price scan: the overnight review searches current fares and hotel rates for this trip and posts what it finds in Chat.</div></div>
  <div class="meta" style="margin:10px 0"><span class="xlink" onclick="renderTrips()">← all trips</span></div>`;
@@ -760,7 +826,7 @@ async function requestScan(id){
  if (!requireOnline()) return;
  const t = DB.trips.find(x => x.id === id);
  if (!t) return;
- await sb.from("messages").insert({ sender: "holden", created_by: ME, body: `[PRICE SCAN] ${t.dest} (${t.when_text || "flexible"}, ${t.pax} pax, ${t.cabin === "biz" ? "business" : "economy"}) requested by ${nameOf(ME)}. Home airport: ${PROFILE?.home_airport || "DEN"}. Find current best cash fares and 2-3 well-reviewed hotel options with rates; reply in chat.` });
+ await sb.from("messages").insert({ sender: "holden", created_by: ME, body: `[PRICE SCAN] ${t.dest} (${t.when_text || "flexible"}, ${t.pax} pax, ${t.cabin === "biz" ? "business" : "economy"}) requested by ${nameOf(ME)} <${ME}>. Home airport: ${PROFILE?.home_airport || "DEN"}. Find current best cash fares and 2-3 well-reviewed hotel options with rates; reply in chat with created_by='${ME}' — chat is private per member.` });
  toast("Requested — results in Chat by 9am");
 }
 async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
@@ -822,10 +888,10 @@ function payOptions(t, e){
  return `<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">
  <div class="group-title" style="margin:0 0 6px">Ways to pay for flights</div>
  <div class="meta"><b>A · All cash:</b> $${Math.round(e.flightCash).toLocaleString()} on Platinum → earns ~${mrEarn}k MR back (5x)</div>
- <div class="meta" style="margin-top:4px"><b>B · Transfer partners:</b> ${Math.round(e.flightPts/1000)}k via ${esc(e.path)} <span class="pill" style="background:${vcolor};color:#fff">${cpp.toFixed(2)}¢/pt · ${vlabel}</span>${ME === OWNER && funding.length ? `<br><span style="font-size:12px">${funding.join(" ·")}</span>` : ""}</div>
+ <div class="meta" style="margin-top:4px"><b>B · Transfer partners:</b> ${Math.round(e.flightPts/1000)}k via ${esc(e.path)} <span class="pill" style="background:${vcolor};color:#fff">${cpp.toFixed(2)}¢/pt · ${vlabel}</span>${ME === OWNER && funding.length ? `<br><span style="font-size:13px">${funding.join(" ·")}</span>` : ""}</div>
  <div class="meta" style="margin-top:4px"><b>C · UR portal (no award hunting):</b> ${Math.round(portalPts/1000)}k UR at a guaranteed 1.25¢${ME === OWNER ? (portalOK ? " — covered" : " — exceeds UR balance") : ""}</div>
  <div class="meta" style="margin-top:8px;border-left:3px solid ${vcolor};padding-left:10px">${rec}</div>
- <div class="meta" style="margin-top:4px;font-size:12px">Math: ($${Math.round(e.flightCash).toLocaleString()} × 0.9 Platinum-earn offset) ÷ ${Math.round(e.flightPts/1000)}k pts = ${cpp.toFixed(2)}¢/pt · bars: 1.25¢ portal floor / 1.5¢ keep-points line / 2¢+ transfer territory. Real award pricing varies — saving the trip gets live research.</div>
+ <div class="meta" style="margin-top:4px;font-size:13px">Math: ($${Math.round(e.flightCash).toLocaleString()} × 0.9 Platinum-earn offset) ÷ ${Math.round(e.flightPts/1000)}k pts = ${cpp.toFixed(2)}¢/pt · bars: 1.25¢ portal floor / 1.5¢ keep-points line / 2¢+ transfer territory. Real award pricing varies — saving the trip gets live research.</div>
  </div>`;
 }
 function altOptions(t, e){
@@ -848,7 +914,7 @@ function altOptions(t, e){
  }
  return `<details style="margin-top:10px"><summary class="meta" style="cursor:pointer;font-weight:600">Alternatives — same trip, different dials</summary>
  ${rows.map(r => `<div class="meta" style="margin-top:6px">${r}</div>`).join("")}
- <div class="meta" style="margin-top:8px;font-size:12px">Flip the cabin/style/days fields above to make any of these the plan — the estimate and pay options recalculate live.</div>
+ <div class="meta" style="margin-top:8px;font-size:13px">Flip the cabin/style/days fields above to make any of these the plan — the estimate and pay options recalculate live.</div>
  </details>`;
 }
 function conflictsWith(t){
@@ -882,7 +948,7 @@ function calcTrip(){
  <div class="meta" style="margin-top:6px"><b>Food</b> — $${e.rates[1]}/person/day × ${t.pax} × ${t.days}d = $${e.food.toLocaleString()}</div>
  <div class="meta" style="margin-top:6px"><b>Activities & local transit</b> — $${e.rates[2]}/person/day × ${t.pax} × ${t.days}d = $${e.act.toLocaleString()}</div>
  <div class="meta" style="margin-top:8px;border-top:1px solid #f0ede7;padding-top:6px">Style tiers (lodging/food/activities per day): budget $45/$30/$20 · mid $140/$70/$60 · comfort $300/$150/$120. These are planning ballparks (±30%), not quotes — <b>saving the trip makes Claude research real fares, hotels, and dates</b> and replace this with a live cost model.</div>
- <div style="margin-top:8px"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="askEstimate()">Question this estimate</button></div>
+ <div style="margin-top:8px"><button class="btn" style="padding:6px 12px;font-size:13px" onclick="askEstimate()">Question this estimate</button></div>
  </details>
  ${adv.length ? '<div style="border-top:1px solid #f0ede7;margin-top:10px;padding-top:8px">' + adv.map(a => `<div class="meta" style="margin-top:4px">${a}</div>`).join("") + "</div>" : ""}`;
 }
@@ -893,7 +959,7 @@ async function saveTripDB(){
  const e = estimate(t);
  const { error } = await sb.from("trips").insert({ ...t, est_cash: Math.round(e.allCash), est_pts: Math.round(e.flightPts/1000), status: "idea", created_by: ME });
  if (error) return alert(error.message);
- await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out.`, created_by: ME });
+ await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out. If replying in chat, set created_by='${ME}' — chat is private per member.`, created_by: ME });
  ["dest","when","days","pax","anchor","notes","start","end"].forEach(k => { const el = document.getElementById("t-" + k); if (el) el.value = ""; });
  localStorage.removeItem("tripdraft");
  await loadAll();
@@ -1013,9 +1079,9 @@ async function askNow(){
  body: JSON.stringify({ messages: history, context })
  });
  const data = await r.json();
- await sb.from("messages").insert({ sender: "claude", body: "" + (data.text || data.error || "no response") });
+ await sb.from("messages").insert({ sender: "claude", body: "" + (data.text || data.error || "no response"), created_by: ME });
  } catch (e) {
- await sb.from("messages").insert({ sender: "claude", body: "Error: " + e.message });
+ await sb.from("messages").insert({ sender: "claude", body: "Error: " + e.message, created_by: ME });
  }
  btn.disabled = false; btn.textContent = "Ask now";
  if (dbtn) { dbtn.disabled = false; dbtn.textContent = "Ask"; }
@@ -1049,7 +1115,7 @@ function renderCredits(){
      html += `<div class="group-title">${CARD_CATALOG[k].name}</div><div class="card">`;
      CARD_BENEFITS[k].forEach(([bk, label, cycle]) => {
        const p = period[cycle], key = `${k}_${bk}_${p.id}`, done = !!used[key];
-       html += `<div class="row"><input type="checkbox" ${done ? "checked" : ""} onchange="toggleBenefit('${key}', this.checked)"><div class="nm"><span class="${done ? "used" : ""}">${label}</span><br><span style="color:#8a8578;font-size:11.5px">resets in ${daysUntil(p.end)} days (${cycle}ly)</span></div></div>`;
+       html += `<div class="row"><input type="checkbox" ${done ? "checked" : ""} onchange="toggleBenefit('${key}', this.checked)"><div class="nm"><span class="${done ? "used" : ""}">${label}</span><br><span style="color:#8a8578;font-size:12.5px">resets in ${daysUntil(p.end)} days (${cycle}ly)</span></div></div>`;
      });
      html += "</div>";
    });
@@ -1174,11 +1240,9 @@ async function deleteMyData(){
 function renderSetup(){
  const w = document.getElementById("setup-welcome");
  if (w) w.innerHTML = (ME !== OWNER && !PROFILE)
- ? `<div class="card" style="border:2px solid #b2543a"><h3>Set up your account</h3>
- <div class="meta" style="margin-top:6px"><span id="st1">·</span> <b>1.</b> Add your name and home airport</div>
- <div class="meta"><span id="st2">·</span> <b>2.</b> Select the cards you carry</div>
- <div class="meta"><span id="st3">·</span> <b>3.</b> Enter rough points balances, then Save</div>
- <div class="meta" style="margin-top:6px">Takes about two minutes. The card picker, trip costs, and chat all use what you enter here — and only you can see it.</div></div>`
+ ? `<div class="card" style="border:2px solid #b2543a"><h3>Make the Hub yours</h3>
+ <div class="meta" style="margin:6px 0 12px">Four quick steps — name, cards, points, calendar. About two minutes, and only you can see what you enter.</div>
+ <button class="btn" style="width:100%" onclick="startWizard()">Start the 2-minute setup</button></div>`
  : "";
  const p = PROFILE || {};
  const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
@@ -1211,18 +1275,60 @@ function renderBalanceFields(){
  + (ME === OWNER ? `<div class="meta" style="margin-top:6px">Your MR/UR/United sync automatically from AwardWallet — entries here are extra programs.</div>` : "");
 }
 function updateSetupSteps(){
- const w = document.getElementById("setup-welcome");
- if (!w || !w.innerHTML) return;
- const done1 = !!document.getElementById("p-name")?.value.trim();
- const done2 = !!document.querySelector("#p-cards .wc-chip.active");
- const done3 = PROGRAMS.some(pr => document.getElementById("pb-" + pr)?.value.trim());
- [["st1", done1], ["st2", done2], ["st3", done3]].forEach(([id, d]) => {
- const el = document.getElementById(id);
- if (el) el.textContent = d ? "\u2713" : "\u00B7";
- });
+ if (WIZ) renderWizard(true);
+}
+// ---------- First-time guided setup wizard ----------
+let WIZ = 0; // 0 = off, 1-4 = current step
+const WIZ_META = [null,
+ ["About you", "Your name and home airport \u2014 trip costs, flight times, and deal alerts start from here."],
+ ["Your cards", "Tap every card you carry. This powers your personal which-card picker."],
+ ["Your points", "Rough balances are fine \u2014 \u201C85k\u201D works. They turn trip ideas into real can-I-afford-this math."],
+ ["Your calendar", "Optional \u2014 paste your secret iCal link and your own events show on the calendar, visible only to you."]];
+function startWizard(){
+ WIZ = 1;
+ goTab("setup");
+ renderWizard();
+}
+function renderWizard(keepScroll){
+ const s = document.getElementById("setup");
+ if (!s) return;
+ s.classList.toggle("wizard", WIZ > 0);
+ s.querySelectorAll(".setup-step").forEach(el => el.classList.toggle("wactive", WIZ > 0 && +el.dataset.step === WIZ));
+ if (!WIZ) return;
+ document.getElementById("wiz-title").textContent = WIZ_META[WIZ][0];
+ document.getElementById("wiz-desc").textContent = WIZ_META[WIZ][1];
+ document.getElementById("wiz-count").textContent = "Step " + WIZ + " of 4";
+ // progress: each completed step fills a quarter; the current step shows a sliver
+ const done = [!!document.getElementById("p-name")?.value.trim(),
+ !!(document.querySelector("#p-cards .wc-chip.active") || document.getElementById("p-cardcustom")?.value.trim()),
+ PROGRAMS.some(pr => document.getElementById("pb-" + pr)?.value.trim()),
+ !!document.getElementById("p-ical")?.value.trim()].filter(Boolean).length;
+ document.getElementById("wiz-fill").style.width = Math.max(done * 25, (WIZ - 1) * 25 + 6) + "%";
+ document.getElementById("wiz-back").style.visibility = WIZ === 1 ? "hidden" : "visible";
+ document.getElementById("wiz-next").textContent = WIZ === 4 ? "Finish \u2014 save my setup" : "Next \u2192";
+ if (!keepScroll) window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function wizBack(){ if (WIZ > 1) { WIZ--; renderWizard(); } }
+function wizNext(){
+ if (WIZ === 1 && !document.getElementById("p-name").value.trim()) {
+ toast("Add your name first \u2014 it labels the trips and events you share");
+ document.getElementById("p-name").focus(); return;
+ }
+ if (WIZ < 4) { WIZ++; renderWizard(); } else finishWizard();
+}
+function skipWizard(){
+ WIZ = 0; renderWizard();
+ goTab("trips");
+ toast("No problem \u2014 finish any time under Settings");
+}
+async function finishWizard(){
+ if (await saveProfile() === false) return;
+ WIZ = 0; renderWizard();
+ goTab("trips");
+ confetti();
 }
 async function saveProfile(){
- if (!requireOnline()) return;
+ if (!requireOnline()) return false;
  const cards = [...document.querySelectorAll("#p-cards .wc-chip.active")].map(x => x.dataset.card)
  .concat(document.getElementById("p-cardcustom").value.split(",").map(s => s.trim()).filter(Boolean));
  // merge: fields not currently rendered (e.g. card deselected) keep their saved value
@@ -1234,16 +1340,17 @@ async function saveProfile(){
  if (v) balances[pr] = v; else delete balances[pr];
  });
  let ical = document.getElementById("p-ical").value.trim();
- if (ical && !/^https:\/\//.test(ical)) { toast("Calendar link must start with https://"); return; }
+ if (ical && !/^https:\/\//.test(ical)) { toast("Calendar link must start with https://"); return false; }
  const row = { email: ME, name: document.getElementById("p-name").value.trim() || null,
  home_airport: document.getElementById("p-airport").value.trim().toUpperCase() || null,
  cabin_pref: document.getElementById("p-cabin").value, cards, balances, ical_url: ical || null, updated_at: new Date().toISOString() };
  const { error } = await sb.from("user_profiles").upsert(row);
- if (error) return toast("Error: " + error.message);
+ if (error) { toast("Error: " + error.message); return false; }
  PROFILE = row; MYCAL = null;
  if (row.name) await sb.from("allowed_users").update({ name: row.name }).eq("email", ME);
  await loadAll();
  toast("Saved — the app now reflects your setup");
+ return true;
 }
 async function loadMyCal(){
  if (MYCAL !== null || !PROFILE?.ical_url || document.body.classList.contains("offline")) return;
@@ -1385,8 +1492,8 @@ function renderInstallNudge(){
  if (!mobile) { el.innerHTML = ""; return; }
  el.innerHTML = `<div class="card" style="display:flex;gap:10px;align-items:center;margin-top:12px">
  <span style="font-size:22px"></span>
- <div style="flex:1;font-size:13px">${deferredInstall ? "<b>Install Trips Hub</b> — full-screen, works offline." : ios ? "<b>Add to your Home Screen:</b> tap <b>Share</b> (□↑) → <b>Add to Home Screen</b>." : "<b>Install:</b> browser menu ⋮ → <b>Add to Home screen</b>."}</div>
- ${deferredInstall ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="deferredInstall.prompt();dismissInstall()">Install</button>` : ""}
+ <div style="flex:1;font-size:14.5px">${deferredInstall ? "<b>Install Trips Hub</b> — full-screen, works offline." : ios ? "<b>Add to your Home Screen:</b> tap <b>Share</b> (□↑) → <b>Add to Home Screen</b>." : "<b>Install:</b> browser menu ⋮ → <b>Add to Home screen</b>."}</div>
+ ${deferredInstall ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="deferredInstall.prompt();dismissInstall()">Install</button>` : ""}
  <button class="del" onclick="dismissInstall()"></button></div>`;
 }
 function dismissInstall(){ localStorage.setItem("installDismissed", "1"); document.getElementById("install-nudge").innerHTML = ""; }
@@ -1515,7 +1622,7 @@ function renderRedemptions(){
  ${reds.length ? `<div class="group-title">History ${withVal.length ? `<span class="pill ${avg >= 2 ? "ok" : avg >= 1.5 ? "warn" : "soon"}">lifetime avg ${avg.toFixed(2)}¢/pt</span>` : ""}</div>
  <div class="card">` + reds.map(r => {
  const cpp = r.cash_value && r.points ? (r.cash_value / r.points * 100) : null;
- return `<div class="row"><div class="nm"><b>${esc(r.label)}</b> <span class="pill info">${esc(r.program)}${r.partner ? " → " + esc(r.partner) : ""}</span>${cpp ? ` <span class="pill ${cpp >= 2 ? "ok" : cpp >= 1.5 ? "warn" : "soon"}">${cpp.toFixed(2)}¢/pt</span>` : ""}<br><span style="color:#666;font-size:12px">${r.date} · ${r.points.toLocaleString()} pts${r.cash_value ? " · $" + r.cash_value.toLocaleString() + " value" : ""}${r.trip ? ` · <span class="xlink" onclick="goTab('trips')">${esc(r.trip)}</span>` : ""}</span></div>
+ return `<div class="row"><div class="nm"><b>${esc(r.label)}</b> <span class="pill info">${esc(r.program)}${r.partner ? " → " + esc(r.partner) : ""}</span>${cpp ? ` <span class="pill ${cpp >= 2 ? "ok" : cpp >= 1.5 ? "warn" : "soon"}">${cpp.toFixed(2)}¢/pt</span>` : ""}<br><span style="color:#666;font-size:13px">${r.date} · ${r.points.toLocaleString()} pts${r.cash_value ? " · $" + r.cash_value.toLocaleString() + " value" : ""}${r.trip ? ` · <span class="xlink" onclick="goTab('trips')">${esc(r.trip)}</span>` : ""}</span></div>
  <button class="del" onclick="delRedemption('${r.id}', '${r.program}', ${r.points})">×</button></div>`;
  }).join("") + "</div>" : ""}`;
 }
@@ -1616,7 +1723,7 @@ function renderStatus(){
  }).join("");
  document.getElementById("open-count").innerHTML = `<span class="pill ${open?"warn":"ok"}">${open} open</span>`;
  document.getElementById("constraints-list").innerHTML = DB.constraints.map(c =>
- `<div class="row"><div class="nm"><b>${esc(c.label)}</b> <span class="pill ${c.kind === "standing" ? "info" : "warn"}">${esc(c.kind)}</span><br><span style="color:#666;font-size:12px">${c.date_start ? c.date_start + " → " + c.date_end : "always"} ${esc(c.notes || "")}</span></div></div>`).join("") || '<div class="empty">None.</div>';
+ `<div class="row"><div class="nm"><b>${esc(c.label)}</b> <span class="pill ${c.kind === "standing" ? "info" : "warn"}">${esc(c.kind)}</span><br><span style="color:#666;font-size:13px">${c.date_start ? c.date_start + " → " + c.date_end : "always"} ${esc(c.notes || "")}</span></div></div>`).join("") || '<div class="empty">None.</div>';
 }
 
 // ---------- Upcoming ----------
@@ -1671,7 +1778,7 @@ function renderUpcoming(){
  <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="evt-${i.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','evt-${i.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','evt-${i.id}')">Add</button></div>`;
  if (i.type === "event" && ME === OWNER)
  body += `<div style="margin-top:8px"><button class="del" style="color:${i.vis === "private" ? "#a15c00" : "#256a37"}" onclick="event.preventDefault();toggleVis('${i.id}','${i.vis}')">${i.vis === "private" ? "private — tap to share with collaborators" : "shared — tap to make private"}</button></div>`;
- body += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="event.preventDefault();askAbout('${i.type}','${i.id}')">Ask about this</button>${i.type === "trip" ? `<button class="btn" style="padding:6px 12px;font-size:12px" onclick="event.preventDefault();goTab('trips')">Open in Trips</button>` : ""}</div>`;
+ body += `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" style="padding:6px 12px;font-size:13px" onclick="event.preventDefault();askAbout('${i.type}','${i.id}')">Ask about this</button>${i.type === "trip" ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="event.preventDefault();goTab('trips')">Open in Trips</button>` : ""}</div>`;
  if (i.type === "event" && (ME === OWNER || i.by === ME)) {
  body += `<details style="margin-top:8px"><summary class="meta" style="cursor:pointer;font-weight:600">Edit details</summary>
  <div style="display:grid;gap:6px;margin-top:8px">
@@ -1854,7 +1961,7 @@ document.querySelectorAll(".sub-tab").forEach(t => t.addEventListener("click", (
  t.classList.add("active"); curTrip = t.dataset.trip; renderPacking();
 }));
 document.getElementById("suggestions").innerHTML = SUGGESTIONS.map((s, i) =>
- `<div class="row" style="cursor:pointer" onclick="fillSuggestion(${i})"><div class="nm"><b>${esc(s.dest)}</b> <span class="pill info">${s.cabin}</span><br><span style="color:#666;font-size:12px">${esc(s.why)}</span></div></div>`).join("");
+ `<div class="row" style="cursor:pointer" onclick="fillSuggestion(${i})"><div class="nm"><b>${esc(s.dest)}</b> <span class="pill info">${s.cabin}</span><br><span style="color:#666;font-size:13px">${esc(s.why)}</span></div></div>`).join("");
 boot();
 </script>
 </body>
