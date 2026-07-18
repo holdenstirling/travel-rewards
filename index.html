@@ -184,6 +184,11 @@
  .wiz-count { font-size: 13px; color: #6e695c; font-weight: 700; letter-spacing: .02em; }
  .wiz-bar { height: 6px; background: #e5e2dc; border-radius: 3px; margin: 10px 0 10px; overflow: hidden; }
  .wiz-bar > div { height: 100%; background: #b2543a; border-radius: 3px; width: 0; transition: width .25s ease; }
+ #wiz-guide { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 50; background: #1a1a1a; color: #fff; border-radius: 14px; padding: 12px 16px; box-shadow: 0 6px 24px rgba(0,0,0,.35); max-width: 660px; width: calc(100% - 32px); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+ #wiz-guide b { white-space: nowrap; }
+ #wiz-guide .gd { flex: 1; min-width: 200px; color: #cfcbc2; line-height: 1.45; }
+ #wiz-guide .xlink { color: #9dbdff; flex: none; }
+ #wiz-guide .btn { padding: 8px 14px; flex: none; }
  /* Dark mode — muted text kept at >= 7:1 contrast so grey-on-black stays readable */
  @media (prefers-color-scheme: dark) {
  body { background: #171614; color: #eceae4; }
@@ -341,10 +346,14 @@
  <input type="text" id="p-cardcustom" placeholder="Other card(s), comma-separated" style="margin-top:10px;width:100%"></div>
  </section>
  <section class="setup-step" data-step="3">
+ <div class="group-title">Card perks <span class="meta" style="font-weight:400">— check any you've already used this period</span></div>
+ <div class="card" id="p-benefits"></div>
+ </section>
+ <section class="setup-step" data-step="4">
  <div class="group-title">My points balances</div>
  <div class="card" id="p-balances"></div>
  </section>
- <section class="setup-step" data-step="4">
+ <section class="setup-step" data-step="5">
  <div class="group-title">Link my calendar <span class="meta" style="font-weight:400">— optional</span></div>
  <div class="card">
  <label style="font-size:13px;color:#666">Secret iCal address<br><input type="text" id="p-ical" placeholder="https://calendar.google.com/…/basic.ics" style="width:100%;margin-top:4px"></label>
@@ -405,6 +414,10 @@
 </div>
 
 <div id="todo" class="panel">
+ <div class="tabs" style="position:static;padding:0;margin-bottom:10px" id="todo-filter">
+ <button class="tab tf" data-f="mine" onclick="setTodoFilter('mine')">My to-dos</button>
+ <button class="tab tf" data-f="all" onclick="setTodoFilter('all')">Everyone's</button>
+ </div>
  <div class="card">
  <div style="display:flex;gap:8px"><input type="text" id="todo-input" placeholder="Add a to-do (travel or otherwise)" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('general')"><button class="btn" onclick="addTodo('general')">Add</button></div>
  </div>
@@ -443,6 +456,7 @@
  <label style="font-size:13px;color:#666">8. Anchor / hard constraint?<br><input type="text" id="t-anchor" placeholder="wedding, permit, race…" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
  </div>
  <label style="font-size:13px;color:#666;display:block;margin-top:10px">9. Anything else?<br><input type="text" id="t-notes" style="width:100%;margin-top:4px" oninput="calcTrip()"></label>
+ <label style="font-size:13px;color:#666;display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="t-priv" style="width:18px;height:18px;margin:0"> Keep this trip private — other members won't see it (Holden, as admin, still can)</label>
  </div>
  <div class="card" id="t-est"><div class="meta">Answer destination, days, travelers for an estimate.</div></div>
  <button class="btn" style="margin-bottom:14px" onclick="saveTripDB()">Save to pipeline (Claude will see it)</button>
@@ -692,7 +706,7 @@ async function loadAll(){
  cur.innerHTML = progs.map(k => `<option value="${b[k]||0}">${k} (${Math.round((b[k]||0)/1000)}k)</option>`).join("") || '<option value="0">set balances in My Setup</option>';
  renderTrips(); renderChat(); renderCredits(); renderPacking(); renderStatus(); renderUpcoming(); renderTodos(); renderResources(); renderRedemptions(); renderRewards(); renderToday(); renderSetup(); renderInstallNudge();
  loadMyCal();
- updateChatBadge(); maybeRestoreTab();
+ updateChatBadge(); maybeRestoreTab(); renderGuide();
  setSync("synced ✓ " + new Date().toLocaleTimeString());
 }
 async function saveState(key){
@@ -723,6 +737,8 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").cat
 let tabRestored = false;
 function maybeRestoreTab(){
  if (tabRestored) return; tabRestored = true;
+ const m = location.hash.match(/^#trip\/(.+)$/);
+ if (m && DB.trips.find(t => t.id === m[1])) { goTab("trips"); tripDetail(m[1]); return; }
  const s = localStorage.getItem("hubtab");
  if (s && s !== "trips") { const el = document.querySelector(`.tab[data-p="${s}"]`); if (el) el.click(); }
 }
@@ -748,6 +764,12 @@ const ST_LABEL = { idea: "idea", researching: "researching", dated: "dated", boo
 const REGION_META = { domestic: { e: "", c: "#256a37" }, mexico: { e: "", c: "#a15c00" }, europe: { e: "", c: "#2a4d8f" }, asia: { e: "", c: "#b3261e" }, southam: { e: "", c: "#7a3423" }, oceania: { e: "", c: "#0e7490" }, africa: { e: "", c: "#8a5a00" }, other: { e: "", c: "#8a8578" } };
 function renderTrips(){
  const el = document.getElementById("trips");
+ // deep link: a #trip/<id> hash keeps that trip's page open across refreshes and data reloads
+ const hm = location.hash.match(/^#trip\/(.+)$/);
+ if (hm) {
+ if (DB.trips.find(t => t.id === hm[1])) { tripDetail(hm[1]); return; }
+ history.replaceState(null, "", location.pathname + location.search);
+ }
  if (!DB.trips.length) { el.innerHTML = '<div class="empty">No trips yet — add one!</div>'; return; }
  const eu = DB.trips.find(t => t.dest.startsWith("Europe"));
  let hero = "";
@@ -760,26 +782,28 @@ function renderTrips(){
  const tds = (DB.todos || []).filter(x => x.list === "trip_" + t.id), openT = tds.filter(x => !x.done).length;
  const reds = (DB.redemptions || []).filter(r => r.trip && t.dest.toLowerCase().includes(r.trip.toLowerCase()));
  const pack = /europe/i.test(t.dest) ? "eu" : /patagonia/i.test(t.dest) ? "pat" : null;
+ const canEdit = ME === OWNER || (t.created_by || OWNER) === ME;
  return `
- <div class="card" style="border-top:4px solid ${(REGION_META[t.region] || REGION_META.other).c}"><h3 style="cursor:pointer" onclick="tripDetail('${t.id}')">${esc(t.dest)}${openT ? ` <span class="pill warn">${openT} open task${openT > 1 ? "s" : ""}</span>` : ""} <span class="xlink" style="font-weight:400">details →</span></h3>
+ <div class="card" style="border-top:4px solid ${(REGION_META[t.region] || REGION_META.other).c}"><h3 style="cursor:pointer" onclick="tripDetail('${t.id}')">${esc(t.dest)}${t.visibility === "private" ? ' <span class="pill warn">private</span>' : ""}${openT ? ` <span class="pill warn">${openT} open task${openT > 1 ? "s" : ""}</span>` : ""} <span class="xlink" style="font-weight:400">details →</span></h3>
  <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"} · est ${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " or +" + t.est_pts + "k pts" : ""}${t.est_cash ? ` <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>` : ""}</div>
  ${t.anchor ? `<div class="meta">${esc(t.anchor)}</div>` : ""}
  ${t.created_by && t.created_by !== OWNER ? `<div class="meta">added by ${esc(nameOf(t.created_by))}</div>` : ""}
  ${t.claude_notes ? `<div class="meta cnote" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${md(t.claude_notes)}</div>` : ""}
  ${reds.length ? `<div class="meta" style="margin-top:6px">${reds.length} redemption${reds.length>1?"s":""} logged (${reds.reduce((s,r)=>s+r.points,0).toLocaleString()} pts) — <span class="xlink" onclick="goTab('calc','redeem-section')">view →</span></div>` : ""}
- <div class="stepper" style="margin-top:10px">${Object.keys(ST_LABEL).map((s, si) => { const cur = Object.keys(ST_LABEL).indexOf(t.status); return `<button class="step ${si < cur ? "sdone" : ""} ${si === cur ? "scur" : ""}" title="Mark as ${ST_LABEL[s]}" onclick="setStatus('${t.id}','${s}')">${ST_LABEL[s]}</button>`; }).join("")}</div>
+ <div class="stepper" style="margin-top:10px">${canEdit ? Object.keys(ST_LABEL).map((s, si) => { const cur = Object.keys(ST_LABEL).indexOf(t.status); return `<button class="step ${si < cur ? "sdone" : ""} ${si === cur ? "scur" : ""}" title="Mark as ${ST_LABEL[s]}" onclick="setStatus('${t.id}','${s}')">${ST_LABEL[s]}</button>`; }).join("") : `<span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span>`}</div>
  <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
  <button class="btn" style="padding:6px 12px;font-size:13px" onclick="askAbout('trip','${t.id}')">Ask</button>
  ${t.date_start ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="goTab('upcoming')">Upcoming</button>` : ""}
  ${pack ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="goPack('${pack}')">Packing</button>` : ""}
  ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="logForTrip('${t.id}')">Log booking</button>` : ""}
- <button class="del" onclick="delTrip('${t.id}')">remove</button></div></div>`;
+ ${canEdit ? `<button class="del" onclick="delTrip('${t.id}')">remove</button>` : ""}</div></div>`;
  }).join("");
 }
 // ---------- Per-trip detail view ----------
 function tripDetail(id){
  const t = DB.trips.find(x => x.id === id);
  if (!t) return;
+ if (location.hash !== "#trip/" + id) history.replaceState(null, "", "#trip/" + id);
  const el = document.getElementById("trips");
  const today = new Date().toISOString().slice(0,10);
  // Day-by-day: events falling inside the trip window, grouped by date
@@ -802,13 +826,14 @@ function tripDetail(id){
  const key = "trip_" + t.id;
  const pack = /europe/i.test(t.dest) ? "eu" : /patagonia/i.test(t.dest) ? "pat" : null;
  el.innerHTML = `<div class="card" style="border:2px solid #b2543a">
- <div style="display:flex;justify-content:space-between;align-items:baseline"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span></h3><button class="del" onclick="renderTrips()">close</button></div>
+ <div style="display:flex;justify-content:space-between;align-items:baseline"><h3>${esc(t.dest)} <span class="status-tag st-${esc(t.status)}">${ST_LABEL[t.status] || esc(t.status)}</span>${t.visibility === "private" ? ' <span class="pill warn">private</span>' : ""}</h3><button class="del" onclick="closeTrip()">close</button></div>
  <div class="meta">${esc(t.when_text || "flexible")} · ${t.days || "?"} days · ${t.pax} pax · ${t.cabin === "biz" ? "business" : "economy"}${t.anchor ? " · " + esc(t.anchor) : ""}</div>
  ${t.claude_notes ? `<div class="meta cnote" style="border-left:3px solid #b2543a;padding-left:10px;margin-top:8px"><b>Claude:</b> ${md(t.claude_notes)}</div>` : ""}
  <div class="group-title" style="margin-top:12px">Budget — planned vs actual</div>
  <div class="row"><div class="nm">Planned (estimate <span class="xlink" onclick="askEstHow('${t.id}')">how?</span>)</div><div class="amt">${t.est_cash ? "$" + t.est_cash.toLocaleString() : "?"}${t.est_pts ? " / " + t.est_pts + "k pts" : ""}</div></div>
  <div class="row"><div class="nm">Booked so far (${reds.length} redemption${reds.length === 1 ? "" : "s"} <span class="xlink" onclick="goTab('calc','redeem-section')">ledger →</span>)</div><div class="amt">${actPts ? actPts.toLocaleString() + " pts" : "—"}${actVal ? " ≈ $" + actVal.toLocaleString() : ""}</div></div>
  ${t.est_pts && actPts ? `<div class="bar"><div style="width:${Math.min(100, Math.round(actPts / (t.est_pts * 1000) * 100))}%"></div></div><div class="meta">${Math.round(actPts / (t.est_pts * 1000) * 100)}% of planned points used</div>` : ""}
+ ${flightFinder(t)}
  <div class="group-title" style="margin-top:12px">Day by day</div>
  ${dayHTML || `<div class="meta">No dated events inside this trip yet — add events on <span class="xlink" onclick="goTab('upcoming')">Upcoming</span> with dates ${t.date_start ? `between ${t.date_start} and ${t.date_end}` : "once the trip has dates"} and they'll appear here as the day plan.</div>`}
  <div class="group-title" style="margin-top:12px">Tasks</div>
@@ -816,20 +841,56 @@ function tripDetail(id){
  <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="td-add-${t.id}" placeholder="Add a task" style="flex:1" onkeydown="if(event.key==='Enter')addTodo('${key}','td-add-${t.id}')"><button class="btn" style="padding:6px 12px" onclick="addTodo('${key}','td-add-${t.id}')">Add</button></div>
  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
  <button class="btn" style="padding:6px 12px;font-size:13px" onclick="askAbout('trip','${t.id}')">Ask</button>
+ <button class="btn alt" style="padding:6px 12px;font-size:13px" onclick="copyTripLink('${t.id}')">Copy link</button>
+ ${(ME === OWNER || (t.created_by || OWNER) === ME) ? `<button class="btn alt" style="padding:6px 12px;font-size:13px" onclick="toggleTripVis('${t.id}')">${t.visibility === "private" ? "Make shared" : "Make private"}</button>` : ""}
  ${pack ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="goPack('${pack}')">Packing</button>` : ""}
  ${ME === OWNER ? `<button class="btn" style="padding:6px 12px;font-size:13px" onclick="logForTrip('${t.id}')">Log booking</button>` : ""}
  <button class="btn" style="padding:6px 12px;font-size:13px" onclick="goTab('upcoming')">Calendar</button>
  <button class="btn alt" style="padding:6px 12px;font-size:13px" onclick="requestScan('${t.id}')">Request price scan</button>
  </div>
  <div class="meta" style="margin-top:6px">Price scan: the overnight review searches current fares and hotel rates for this trip and posts what it finds in Chat.</div></div>
- <div class="meta" style="margin:10px 0"><span class="xlink" onclick="renderTrips()">← all trips</span></div>`;
+ <div class="meta" style="margin:10px 0"><span class="xlink" onclick="closeTrip()">← all trips</span></div>`;
  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function closeTrip(){
+ history.replaceState(null, "", location.pathname + location.search);
+ renderTrips();
+}
+window.addEventListener("hashchange", () => {
+ const m = location.hash.match(/^#trip\/(.+)$/);
+ if (m && DB.trips.find(t => t.id === m[1])) { goTab("trips"); tripDetail(m[1]); }
+});
+function copyTripLink(id){
+ const url = location.origin + location.pathname + "#trip/" + id;
+ if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(() => toast("Link copied — paste it anywhere"), () => toast(url));
+ else toast(url);
+}
+async function toggleTripVis(id){
+ if (!requireOnline()) return;
+ const t = DB.trips.find(x => x.id === id);
+ if (!t) return;
+ const v = t.visibility === "private" ? "shared" : "private";
+ await sb.from("trips").update({ visibility: v, updated_at: new Date().toISOString() }).eq("id", id);
+ await loadAll();
+ toast(v === "private" ? "Private — only you (and Holden) see this trip" : "Shared with the group");
+}
+// Per-trip flight finder: the member's programs + the tools that search them
+function flightFinder(t){
+ const b = myBalances();
+ const progs = Object.entries(b).filter(([k, v]) => typeof v === "number" && v > 0);
+ const org = (ME === OWNER ? "DEN" : PROFILE?.home_airport) || "DEN";
+ const gf = "https://www.google.com/travel/flights?q=" + encodeURIComponent("Flights from " + org + " to " + t.dest + (t.date_start ? " on " + t.date_start : ""));
+ return `<div class="group-title" style="margin-top:12px">Find flights with your points</div>
+ <div class="meta">Your ammo: ${progs.length ? progs.map(([k, v]) => `<b>${esc(k)}</b> ${Math.round(v/1000)}k`).join(" · ") : `no balances saved yet — <span class="xlink" onclick="goTab('setup')">add them</span> and this becomes personal`}</div>
+ <div class="meta" style="margin-top:6px"><a href="${gf}" target="_blank" rel="noopener">Google Flights</a> — cash baseline for ${esc(org)} → ${esc(t.dest)}</div>
+ <div class="meta" style="margin-top:4px"><a href="https://seats.aero" target="_blank" rel="noopener">Seats.aero</a> — award space across 24 programs · <a href="https://www.pointsyeah.com" target="_blank" rel="noopener">PointsYeah</a> — award search with free alerts · <a href="https://point.me" target="_blank" rel="noopener">point.me</a> — step-by-step booking paths</div>
+ <div class="meta" style="margin-top:6px">Or skip the tab-hopping: <span class="xlink" onclick="requestScan('${t.id}')">request an overnight award scan</span> — Claude checks cash fares AND award paths against the balances above, results in Chat by 9am.</div>`;
 }
 async function requestScan(id){
  if (!requireOnline()) return;
  const t = DB.trips.find(x => x.id === id);
  if (!t) return;
- await sb.from("messages").insert({ sender: "holden", created_by: ME, body: `[PRICE SCAN] ${t.dest} (${t.when_text || "flexible"}, ${t.pax} pax, ${t.cabin === "biz" ? "business" : "economy"}) requested by ${nameOf(ME)} <${ME}>. Home airport: ${PROFILE?.home_airport || "DEN"}. Find current best cash fares and 2-3 well-reviewed hotel options with rates; reply in chat with created_by='${ME}' — chat is private per member.` });
+ await sb.from("messages").insert({ sender: "holden", created_by: ME, body: `[PRICE SCAN] ${t.dest} (${t.when_text || "flexible"}, ${t.pax} pax, ${t.cabin === "biz" ? "business" : "economy"}) requested by ${nameOf(ME)} <${ME}>. Home airport: ${PROFILE?.home_airport || "DEN"}. Their programs/balances: ${Object.entries(myBalances()).filter(([k,v]) => typeof v === "number").map(([k,v]) => k + " " + v.toLocaleString()).join(", ") || "none saved"}. Find (1) current best cash fares, (2) transferable award paths their balances can actually fund with points prices, (3) 2-3 well-reviewed hotel options with rates. Give a clear cash-vs-points verdict. Reply in chat with created_by='${ME}' — chat is private per member.` });
  toast("Requested — results in Chat by 9am");
 }
 async function setStatus(id, status){ await sb.from("trips").update({ status, updated_at: new Date().toISOString() }).eq("id", id); loadAll(); }
@@ -883,6 +944,7 @@ function payOptions(t, e){
  // UR portal floor option
  const portalPts = Math.round(e.flightCash / 0.0125);
  const portalOK = (b.UR || 0) >= portalPts;
+ const cred = unusedTravelCredits();
  let rec;
  if (cpp >= 2 && funded) rec = `<b>Use points for flights</b> — ${cpp.toFixed(2)}¢/pt via ${esc(e.path)} beats your 2¢ bar. Pay ground with CSP.`;
  else if (cpp >= 2 && !funded) rec = `<b>Points would win</b> (${cpp.toFixed(2)}¢/pt) but no single balance covers it — combine (FU→CSP, or MR+UR→Aeroplan) or trim to fewer pax/economy.`;
@@ -893,6 +955,7 @@ function payOptions(t, e){
  <div class="meta"><b>A · All cash:</b> $${Math.round(e.flightCash).toLocaleString()} on Platinum → earns ~${mrEarn}k MR back (5x)</div>
  <div class="meta" style="margin-top:4px"><b>B · Transfer partners:</b> ${Math.round(e.flightPts/1000)}k via ${esc(e.path)} <span class="pill" style="background:${vcolor};color:#fff">${cpp.toFixed(2)}¢/pt · ${vlabel}</span>${ME === OWNER && funding.length ? `<br><span style="font-size:13px">${funding.join(" ·")}</span>` : ""}</div>
  <div class="meta" style="margin-top:4px"><b>C · UR portal (no award hunting):</b> ${Math.round(portalPts/1000)}k UR at a guaranteed 1.25¢${ME === OWNER ? (portalOK ? " — covered" : " — exceeds UR balance") : ""}</div>
+ ${cred.tot ? `<div class="meta" style="margin-top:4px"><b>D · Burn card credits first:</b> $${cred.tot} of unused travel credits apply — ${cred.names.join(", ")}. Knock these off whichever option you pick.</div>` : ""}
  <div class="meta" style="margin-top:8px;border-left:3px solid ${vcolor};padding-left:10px">${rec}</div>
  <div class="meta" style="margin-top:4px;font-size:13px">Math: ($${Math.round(e.flightCash).toLocaleString()} × 0.9 Platinum-earn offset) ÷ ${Math.round(e.flightPts/1000)}k pts = ${cpp.toFixed(2)}¢/pt · bars: 1.25¢ portal floor / 1.5¢ keep-points line / 2¢+ transfer territory. Real award pricing varies — saving the trip gets live research.</div>
  </div>`;
@@ -960,13 +1023,17 @@ async function saveTripDB(){
  const t = tripData();
  if (!t.dest || !t.days) return alert("Need at least destination and days.");
  const e = estimate(t);
- const { error } = await sb.from("trips").insert({ ...t, est_cash: Math.round(e.allCash), est_pts: Math.round(e.flightPts/1000), status: "idea", created_by: ME });
+ const { data: ins, error } = await sb.from("trips").insert({ ...t, est_cash: Math.round(e.allCash), est_pts: Math.round(e.flightPts/1000), status: "idea", created_by: ME, visibility: document.getElementById("t-priv")?.checked ? "private" : "shared" }).select();
  if (error) return alert(error.message);
+ const newId = ins && ins[0] && ins[0].id;
+ if (document.getElementById("t-priv")) document.getElementById("t-priv").checked = false;
  await sb.from("messages").insert({ sender: "holden", body: `[NEW TRIP] ${t.dest} — ${t.when_text}, ${t.days}d, ${t.pax} pax, ${t.cabin}, ${t.style}. Anchor: ${t.anchor || "none"}. ${t.notes || ""} Please run the full build-out. If replying in chat, set created_by='${ME}' — chat is private per member.`, created_by: ME });
  ["dest","when","days","pax","anchor","notes","start","end"].forEach(k => { const el = document.getElementById("t-" + k); if (el) el.value = ""; });
  localStorage.removeItem("tripdraft");
+ await autoTripTodos(t, newId);
  await loadAll();
- toast("Trip saved — research runs overnight");
+ toast(ME === OWNER ? "Trip saved — research runs overnight" : "Trip saved — travel checklist created, research runs overnight");
+ if (+sessionStorage.getItem("wizGuide") === 6) { startGuide(7); return; }
  document.querySelector('[data-p="trips"]').click();
 }
 
@@ -1072,7 +1139,7 @@ async function askNow(){
  const b = DB.state.balances || {};
  const myCards = (PROFILE?.cards || []).map(k => CARD_CATALOG[k]?.name || k).join(",");
  const myBal = Object.entries(myBalances()).filter(([k,v]) => typeof v === "number").map(([k,v]) => `${k} ${v.toLocaleString()}`).join(",");
- const friendContext = `You are the travel assistant inside the shared Trips Hub. The user is ${nameOf(ME)} (a collaborator, not Holden). THEIR setup — cards: ${myCards || "not set"}; points: ${myBal || "not set"}; home airport: ${PROFILE?.home_airport || "unknown"}; prefers ${PROFILE?.cabin_pref === "biz" ? "business" : "economy"} long-haul. PHILOSOPHY: optimize the reward/experience per dollar first; points are currency. Points win above 2¢/pt. SHARED TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" |")}.${askCtx ? " FOCUS ITEM: " + JSON.stringify(askCtx.item) : ""} Be concise and concrete, plain professional prose, no emojis. Only discuss their own cards/points, never other members'. If they haven't filled My Setup, suggest it.`;
+ const friendContext = `You are the travel assistant inside the shared Trips Hub. The user is ${nameOf(ME)} (a collaborator, not Holden). THEIR setup — cards: ${myCards || "not set"}; points: ${myBal || "not set"}; home airport: ${PROFILE?.home_airport || "unknown"}; prefers ${PROFILE?.cabin_pref === "biz" ? "business" : "economy"} long-haul. PHILOSOPHY: optimize the reward/experience per dollar first; points are currency. Points win above 2¢/pt. SHARED TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" |")}.${askCtx ? " FOCUS ITEM: " + JSON.stringify(askCtx.item) : ""} Be concise and concrete, plain professional prose, no emojis. Only discuss their own cards/points, never other members'. If they haven't filled My Setup, suggest it. IMPORTANT: if their question involves a trip that is missing key info (dates, days, travelers) or they have no balances saved, end your reply with exactly ONE short follow-up question asking for the most useful missing piece — otherwise end with no question.`;
  const context = ME !== OWNER ? friendContext : `You are the instant assistant inside Holden's Trips/Travel/Rewards Hub. Holden: Denver (DEN) base, prefers business class long-haul, loves mountains/trekking/running, works remotely. Balances: MR ${b.MR}, UR ${b.UR}, United ${b.United}. Cards: Amex Platinum (5x flights), CSP (3x dining/2x travel, UR transfers, rental CDW), Freedom Unlimited (1.5x→UR), Prime Visa (Amazon only), BCP (6% groceries, never abroad). PHILOSOPHY: optimize the REWARD first — the experience per dollar — and treat points as mere currency; always answer in terms of what he gets (nights, cabins, trips) and its cash-equivalent value, then which currency buys it best. Rules: never transfer speculatively; points win above 2¢/pt; ANA 75-85k RT biz Japan; LifeMiles 63k SA biz; Hyatt 1:1 ends Sep 30 2026 (Hyatt: UR transfers 1:1 now; Park Hyatt Beaver Creek is Cat 8 ~35-45k/night, Grand Hyatt Vail Cat 7 ~30-40k, lower-cat Hyatts 8-25k). Trip estimates on the site are formula ballparks: flights = DEN benchmark (2025-26 medians + published award charts) x pax; ground = style-tier daily rates (budget $45/$30/$20, mid $140/$70/$60, comfort $300/$150/$120 for lodging/food/activities) x days x pax, +/-30%; if asked how an estimate was built, explain this and what live research would refine. TRIPS: ${DB.trips.map(t => `${t.dest} [${t.status}] ${t.when_text}`).join(" |")}. CONSTRAINTS: ${DB.constraints.map(c => `${c.label} ${c.date_start || ""}-${c.date_end || ""}`).join(" |")}.${askCtx ? " FOCUS ITEM (the user is asking about this specific item — use all its details): " + JSON.stringify(askCtx.item) : ""} Be concise and concrete with real numbers. Write in plain professional prose — no emojis, no exclamation points. For anything needing live searches, calendar, or email, tell him to leave the message for full-Claude's daily scan or open a Claude chat.`;
  if (askCtx) askCtx = null;
  const history = DB.messages.slice(-10).map(m => ({ role: m.sender === "holden" ? "user" : "assistant", content: m.body }));
@@ -1244,7 +1311,7 @@ function renderSetup(){
  const w = document.getElementById("setup-welcome");
  if (w) w.innerHTML = (ME !== OWNER && !PROFILE)
  ? `<div class="card" style="border:2px solid #b2543a"><h3>Make the Hub yours</h3>
- <div class="meta" style="margin:6px 0 12px">Four quick steps — name, cards, points, calendar. About two minutes, and only you can see what you enter.</div>
+ <div class="meta" style="margin:6px 0 12px">Seven quick steps — you, your cards, their perks, your points, calendar, a first trip, and your travel checklist. A few minutes, and only you can see what you enter.</div>
  <button class="btn" style="width:100%" onclick="startWizard()">Start the 2-minute setup</button></div>`
  : "";
  const p = PROFILE || {};
@@ -1253,9 +1320,10 @@ function renderSetup(){
  const mine = new Set((p.cards || []).filter(c => CARD_CATALOG[c]));
  if (ME === OWNER && !mine.size) ["amex_platinum","csp","freedom_unlimited","prime_visa","bcp"].forEach(k => mine.add(k)); // his known lineup, editable
  document.getElementById("p-cards").innerHTML = Object.entries(CARD_CATALOG).map(([k, c]) =>
- `<button class="wc-chip ${mine.has(k) ? "active" : ""}" onclick="this.classList.toggle('active');renderBalanceFields();updateSetupSteps()" data-card="${k}">${c.name}</button>`).join("");
+ `<button class="wc-chip ${mine.has(k) ? "active" : ""}" onclick="this.classList.toggle('active');renderBalanceFields();renderBenefitStep();updateSetupSteps()" data-card="${k}">${c.name}</button>`).join("");
  set("p-cardcustom", (p.cards || []).filter(c => !CARD_CATALOG[c]).join(","));
  renderBalanceFields();
+ renderBenefitStep();
  updateSetupSteps();
 }
 function renderBalanceFields(){
@@ -1278,16 +1346,47 @@ function renderBalanceFields(){
  <div class="meta" style="margin-top:6px">The overnight deal review uses your card list and home airport (never your balances) to flag deals relevant to you.</div>`
  + (ME === OWNER ? `<div class="meta" style="margin-top:6px">Your MR/UR/United sync automatically from AwardWallet — entries here are extra programs.</div>` : "");
 }
+function renderBenefitStep(){
+ const el = document.getElementById("p-benefits");
+ if (!el) return;
+ const sel = [...document.querySelectorAll("#p-cards .wc-chip.active")].map(x => x.dataset.card);
+ const used = (PROFILE && PROFILE.benefits) || {};
+ const perLabel = { month: "monthly", quarter: "quarterly", half: "twice a year", year: "yearly" };
+ const cards = sel.filter(k => CARD_BENEFITS[k]);
+ el.innerHTML = cards.length
+ ? cards.map(k => `<div class="group-title" style="margin-top:10px">${CARD_CATALOG[k].name}</div>` +
+ CARD_BENEFITS[k].map(([key, label, per]) =>
+ `<div class="row"><input type="checkbox" data-bkey="${key}" ${used[key] ? "checked" : ""}><div class="nm">${label} <span class="pill info">${perLabel[per] || per}</span></div></div>`).join("")).join("")
+ + `<div class="meta" style="margin-top:10px">Checked = already used this period. Unchecked perks show in your Credits tab and count against trip costs in the planner.</div>`
+ : `<div class="meta">No recurring credits on the cards selected — flat cash-back cards travel light. Nothing to track here.</div>`;
+}
+function unusedTravelCredits(){
+ const mine = (PROFILE?.cards || []).filter(k => CARD_BENEFITS[k]);
+ const used = PROFILE?.benefits || {};
+ let tot = 0; const names = [];
+ mine.forEach(k => CARD_BENEFITS[k].forEach(([key, label]) => {
+ if (used[key]) return;
+ if (!/hotel|travel|airline|portal/i.test(label)) return;
+ const m = label.match(/\$(\d+)/);
+ if (!m) return;
+ tot += +m[1];
+ names.push(label.replace(/\s*\(.*?\)/g, ""));
+ }));
+ return { tot, names };
+}
 function updateSetupSteps(){
  if (WIZ) renderWizard(true);
 }
 // ---------- First-time guided setup wizard ----------
 let WIZ = 0; // 0 = off, 1-4 = current step
 const WIZ_META = [null,
- ["About you", "Your name and home airport \u2014 trip costs, flight times, and deal alerts start from here."],
+ ["About you", "Your name and home airport — trip costs, flight times, and deal alerts start from here."],
  ["Your cards", "Tap every card you carry. This powers your personal which-card picker."],
- ["Your points", "Rough balances are fine \u2014 \u201C85k\u201D works. They turn trip ideas into real can-I-afford-this math."],
- ["Your calendar", "Optional \u2014 paste your secret iCal link and your own events show on the calendar, visible only to you."]];
+ ["Your card perks", "Every card comes with built-in credits. Check off what you've already used this period — whatever's left gets counted when we price your trips."],
+ ["Your points", "Rough balances are fine — “85k” works. They turn trip ideas into real can-I-afford-this math."],
+ ["Your calendar", "Optional — paste your secret iCal link and your own events show on the calendar, visible only to you."],
+ ["Plan your first trip", "Fill in the form and hit Save — the cost estimate and the three ways to pay update live using YOUR cards and points."],
+ ["Your travel to-dos", "A checklist was just created for your trip — flights, lodging, insurance. Check items off as you book, and add your own above."]];
 function startWizard(){
  WIZ = 1;
  goTab("setup");
@@ -1301,35 +1400,73 @@ function renderWizard(keepScroll){
  if (!WIZ) return;
  document.getElementById("wiz-title").textContent = WIZ_META[WIZ][0];
  document.getElementById("wiz-desc").textContent = WIZ_META[WIZ][1];
- document.getElementById("wiz-count").textContent = "Step " + WIZ + " of 4";
+ document.getElementById("wiz-count").textContent = "Step " + WIZ + " of 7";
  // progress: each completed step fills a quarter; the current step shows a sliver
  const done = [!!document.getElementById("p-name")?.value.trim(),
  !!(document.querySelector("#p-cards .wc-chip.active") || document.getElementById("p-cardcustom")?.value.trim()),
  PROGRAMS.some(pr => document.getElementById("pb-" + pr)?.value.trim()),
  !!document.getElementById("p-ical")?.value.trim()].filter(Boolean).length;
- document.getElementById("wiz-fill").style.width = Math.max(done * 25, (WIZ - 1) * 25 + 6) + "%";
+ document.getElementById("wiz-fill").style.width = Math.max(done * 14.3, (WIZ - 1) * 14.3 + 5) + "%";
  document.getElementById("wiz-back").style.visibility = WIZ === 1 ? "hidden" : "visible";
- document.getElementById("wiz-next").textContent = WIZ === 4 ? "Finish \u2014 save my setup" : "Next \u2192";
+ document.getElementById("wiz-next").textContent = WIZ === 5 ? "Save & continue → first trip" : "Next →";
  if (!keepScroll) window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function wizBack(){ if (WIZ > 1) { WIZ--; renderWizard(); } }
 function wizNext(){
  if (WIZ === 1 && !document.getElementById("p-name").value.trim()) {
- toast("Add your name first \u2014 it labels the trips and events you share");
+ toast("Add your name first — it labels the trips and events you share");
  document.getElementById("p-name").focus(); return;
  }
- if (WIZ < 4) { WIZ++; renderWizard(); } else finishWizard();
+ if (WIZ < 5) { WIZ++; renderWizard(); return; }
+ // step 5: save the profile, then guide him through a first trip + travel to-dos
+ saveProfile().then(ok => {
+ if (ok === false) return;
+ WIZ = 0; renderWizard();
+ startGuide(6);
+ });
 }
 function skipWizard(){
  WIZ = 0; renderWizard();
+ sessionStorage.removeItem("wizGuide");
+ renderGuide();
  goTab("trips");
- toast("No problem \u2014 finish any time under Settings");
+ toast("No problem — finish any time under Settings");
 }
-async function finishWizard(){
- if (await saveProfile() === false) return;
- WIZ = 0; renderWizard();
- goTab("trips");
- confetti();
+// Steps 5-6 travel with him across tabs as a bottom guide bar
+function startGuide(step){
+ sessionStorage.setItem("wizGuide", step);
+ goTab(step === 6 ? "addtrip" : "todo");
+ renderGuide();
+}
+function renderGuide(){
+ const g = +sessionStorage.getItem("wizGuide") || 0;
+ let bar = document.getElementById("wiz-guide");
+ document.body.style.paddingBottom = g && ME !== OWNER ? "110px" : "";
+ if (!g || ME === OWNER) { if (bar) bar.remove(); return; }
+ if (!bar) { bar = document.createElement("div"); bar.id = "wiz-guide"; document.body.appendChild(bar); }
+ const meta = WIZ_META[g] || ["", ""];
+ bar.innerHTML = `<b>Step ${g} of 7 · ${meta[0]}</b><span class="gd">${meta[1]}</span>` +
+ (g === 7 ? `<button class="btn" onclick="endGuide()">Done — I'm set</button>`
+ : `<span class="xlink" onclick="endGuide()">finish later</span>`);
+}
+function endGuide(){
+ const was = +sessionStorage.getItem("wizGuide") || 0;
+ sessionStorage.removeItem("wizGuide");
+ renderGuide();
+ if (was === 7) confetti();
+}
+// Standard travel checklist, generated per trip for members
+async function autoTripTodos(t, tripId){
+ if (ME === OWNER) return; // Holden's trips already run through the daily-scan pipeline
+ const items = [
+ `Book flights — ${t.dest}${t.when_text ? " (" + t.when_text + ")" : ""}`,
+ `Book lodging — ${t.dest}`,
+ `Travel insurance — ${t.dest}`
+ ];
+ if (t.region && t.region !== "domestic") items.push(`Passport & visa check — ${t.dest}`);
+ if (/permit|camp|hut|lottery/i.test(t.anchor || "")) items.push(`Permit / lottery dates — ${t.dest} (ask the chat)`);
+ items.push(`Packing list — ${t.dest} (start a week out)`);
+ await sb.from("todos").insert(items.map(text => ({ text, list: tripId ? "trip_" + tripId : "general", created_by: ME })));
 }
 async function saveProfile(){
  if (!requireOnline()) return false;
@@ -1343,11 +1480,15 @@ async function saveProfile(){
  const v = parsePoints(el.value);
  if (v) balances[pr] = v; else delete balances[pr];
  });
+ const bEls = [...document.querySelectorAll("#p-benefits input[type=checkbox]")];
+ const benefits = {};
+ if (bEls.length) bEls.forEach(el2 => { if (el2.checked) benefits[el2.dataset.bkey] = true; });
+ else Object.assign(benefits, (PROFILE && PROFILE.benefits) || {});
  let ical = document.getElementById("p-ical").value.trim();
  if (ical && !/^https:\/\//.test(ical)) { toast("Calendar link must start with https://"); return false; }
  const row = { email: ME, name: document.getElementById("p-name").value.trim() || null,
  home_airport: document.getElementById("p-airport").value.trim().toUpperCase() || null,
- cabin_pref: document.getElementById("p-cabin").value, cards, balances, ical_url: ical || null, updated_at: new Date().toISOString() };
+ cabin_pref: document.getElementById("p-cabin").value, cards, balances, benefits, ical_url: ical || null, updated_at: new Date().toISOString() };
  const { error } = await sb.from("user_profiles").upsert(row);
  if (error) { toast("Error: " + error.message); return false; }
  PROFILE = row; MYCAL = null;
@@ -1563,12 +1704,19 @@ function renderRewards(){
  const b = myBalances();
  const rows = Object.entries(b).map(([k, v]) =>
  `<div class="rw-row"><span><b>${esc(k)}</b></span><span class="rw-n">${v.toLocaleString()} · ≈ $${Math.round(v * 0.0125).toLocaleString()}–$${Math.round(v * 0.02).toLocaleString()}</span></div>`).join("");
- const guided = Object.entries(b).map(([k, v]) =>
- `<div style="padding:9px 0;border-bottom:1px solid #f0ede7"><div style="display:flex;justify-content:space-between;gap:10px"><b>${esc(k)}</b><span class="rw-n">${v.toLocaleString()} · $${Math.round(v * 0.0125).toLocaleString()}–$${Math.round(v * 0.02).toLocaleString()}</span></div><div class="meta" style="margin-top:2px">${PROGRAM_GUIDE[k] || ""}</div></div>`).join("");
+ const VERDICT = k => ["MR","UR","C1","TYP","Bilt"].includes(k) ? ["transferable — hold for 2¢+","ok"]
+ : k === "Hyatt" ? ["strong — 2¢+ typical","ok"]
+ : ["Marriott","Hilton"].includes(k) ? ["burn first — lowest value","warn"]
+ : ["use on saver awards","info"];
+ const guided = Object.entries(b).map(([k, v]) => {
+ const [vt, vc] = VERDICT(k);
+ return `<div style="padding:9px 0;border-bottom:1px solid #f0ede7"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span><b>${esc(k)}</b> <span class="pill ${vc}">${vt}</span></span><span class="rw-n">${v.toLocaleString()} · $${Math.round(v * 0.0125).toLocaleString()}–$${Math.round(v * 0.02).toLocaleString()}</span></div><div class="meta" style="margin-top:2px">${PROGRAM_GUIDE[k] || ""}</div></div>`;
+ }).join("");
  const advice = [];
  if (b.MR && b.UR) advice.push("MR and UR both transfer to Aeroplan, Flying Blue, and Virgin — combinable for one large premium award.");
  if (b.UR) advice.push(`Your guaranteed floor: $${Math.round(b.UR * 0.0125).toLocaleString()} through the Chase portal, no award hunting required.`);
  if (b.Marriott || b.Hilton) advice.push("Hotel points are worth the least per point — spend them before airline miles when either works.");
+ Object.entries(b).forEach(([k, v]) => { if (v >= 100000) advice.push(`${k} is a six-figure idle balance — pick a target redemption (a trip on the Trips tab?) before devaluation nibbles it.`); });
  const totP = Object.values(b).filter(v => typeof v === "number").reduce((s, v) => s + v, 0);
  el.innerHTML = whichCardGeneric() + (guided
  ? `<div class="card"><h3>Your points portfolio</h3><div class="meta" style="margin-bottom:6px">${totP.toLocaleString()} points across ${Object.keys(b).length} program${Object.keys(b).length > 1 ? "s" : ""} — roughly $${Math.round(totP * 0.0125).toLocaleString()}–$${Math.round(totP * 0.02).toLocaleString()} of travel.</div>${guided}
@@ -1859,15 +2007,22 @@ function linkify(s){
  m => { const href = m.startsWith("http") ? m : "https://" + m; return `<a href="${href}" target="_blank" rel="noopener">${m.length > 42 ? m.slice(0,40) + "…" : m}</a>`; });
 }
 function todoRow(t){
- return `<div class="row"><input type="checkbox" ${t.done?"checked":""} onchange="toggleTodo('${t.id}',this.checked)"><div class="nm"><span class="${t.done?"used":""}">${linkify(t.text)}</span>${t.created_by && t.created_by !== OWNER ? ` <span class="pill info">${esc(nameOf(t.created_by))}</span>` : ""}</div><button class="del" onclick="delTodo('${t.id}')">×</button></div>`;
+ const trip = t.list && t.list.startsWith("trip_") ? DB.trips.find(x => "trip_" + x.id === t.list) : null;
+ return `<div class="row"><input type="checkbox" ${t.done?"checked":""} onchange="toggleTodo('${t.id}',this.checked)"><div class="nm"><span class="${t.done?"used":""}">${linkify(t.text)}</span>${trip ? ` <span class="pill ok" style="cursor:pointer" onclick="goTab('trips');tripDetail('${trip.id}')">${esc(trip.dest)}</span>` : ""}${t.created_by && t.created_by !== OWNER ? ` <span class="pill info">${esc(nameOf(t.created_by))}</span>` : ""}</div><button class="del" onclick="delTodo('${t.id}')">×</button></div>`;
 }
+let TODOF = null;
+function setTodoFilter(f){ TODOF = f; renderTodos(); }
+function todoFilter(){ return TODOF || (ME === OWNER ? "all" : "mine"); }
 function renderTodos(){
  const el = document.getElementById("todo-list");
- const general = (DB.todos || []).filter(t => t.list === "general");
+ const f = todoFilter();
+ document.querySelectorAll("#todo-filter .tf").forEach(b => b.classList.toggle("active", b.dataset.f === f));
+ let general = (DB.todos || []).filter(t => t.list === "general");
+ if (f === "mine") general = (DB.todos || []).filter(t => (t.created_by || OWNER) === ME && (t.list === "general" || (t.list || "").startsWith("trip_")));
  const open = general.filter(t => !t.done).length;
  el.innerHTML = general.length
- ? `<div class="group-title">To-dos <span class="pill ${open?"warn":"ok"}">${open} open</span></div><div class="card">` + general.map(todoRow).join("") + "</div>"
- : '<div class="empty">Nothing yet — add anything: errands, calls, trip prep.</div>';
+ ? `<div class="group-title">${f === "mine" ? "My to-dos" : "To-dos"} <span class="pill ${open?"warn":"ok"}">${open} open</span></div><div class="card">` + general.map(todoRow).join("") + "</div>"
+ : `<div class="empty">${f === "mine" ? "Nothing on your list yet — plan a trip and a travel checklist appears here." : "Nothing yet — add anything: errands, calls, trip prep."}</div>`;
 }
 
 // ---------- Resources ----------
